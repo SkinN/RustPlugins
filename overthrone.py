@@ -1,3 +1,5 @@
+﻿HELLO WORLD
+
 import re
 import time
 import BasePlayer
@@ -16,7 +18,7 @@ class overthrone:
         #self.ResourceId = 0
 
     # -------------------------------------------------------------------------
-    def LoadDefaultConfig(self):
+    def LoadDefaultConfig(self):asa
         ''' Hook called when there is no configuration file '''
 
         self.Config = {
@@ -252,7 +254,7 @@ class overthrone:
 
                     self.say(MSG['FIRST KING'].format(king=att.displayName), COLOR['SYSTEM'])
 
-    # --------------------------------------------------------------------------
+    # -------------------------------------------------------------------------
     # - PLAYER HOOKS
     def OnPlayerInit(self, player):
         ''' Hook called when a player initiates in the server '''
@@ -312,6 +314,3 @@ class overthrone:
             king = BasePlayer.Find(king)
 
             self.tell(player, MSG['CURRENT KING'].format(king=king.displayName), COLOR['SYSTEM'], king)
-
-
-
