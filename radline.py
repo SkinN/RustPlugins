@@ -1,5 +1,5 @@
-import Rust
-import server
+﻿import Rust
+import ConVar.Server as server
 from UnityEngine import Time
 
 # GLOBAL VARIABLES
@@ -18,7 +18,7 @@ class radline:
         self.Title = 'Rad Line'
         self.Author = 'SkinN'
         self.Description = 'Turns off radiation for a while from time to time'
-        self.Version = V(1, 1, 0)
+        self.Version = V(1, 1, 1)
         self.HasConfig = True
         self.ResourceId = 914
 
