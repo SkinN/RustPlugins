@@ -13,8 +13,9 @@ class overthrone:
 
         self.Title = 'OverThrone'
         self.Author = 'SkinN & OMNI-Hollow'
+        self.description = 'Reign Of Kings king system re-imagined on Rust'
         self.Version = V(0, 0, 1)
-        #self.ResourceId=0
+        self.ResourceId=1169
 
     # -------------------------------------------------------------------------
     # - CONFIGURATION / DATABASE SYSTEM
