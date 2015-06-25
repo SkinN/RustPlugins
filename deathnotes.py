@@ -26,7 +26,7 @@ from UnityEngine import Vector3
 
 # GLOBAL VARIABLES
 DEV = False
-LATEST_CFG = 4.2
+LATEST_CFG = 4.3
 LINE = '-' * 50
 
 class deathnotes:
@@ -39,7 +39,7 @@ class deathnotes:
         self.Title = 'Death Notes'
         self.Author = 'SkinN'
         self.Description = 'Broadcasts players/animals deaths to chat'
-        self.Version = V(2, 5, 4)
+        self.Version = V(2, 5, 5)
         self.ResourceId = 819
 
     # ==========================================================================
@@ -161,7 +161,8 @@ class deathnotes:
                 'GRENADE.F1.DEPLOYED': 'F1 Grenade',
                 'GRENADE.BEANCAN.DEPLOYED': 'Beancan Grenade',
                 'TIMED.EXPLOSIVE.DEPLOYED': 'Timed Explosive Charge',
-                'SMG.WEAPON': 'Custom SMG'
+                'SMG.WEAPON': 'Custom SMG',
+                'SEMI_PISTOL.WEAPON': 'Semi-Automatic Pistol'
             },
             'TRAPS': {
                 'BARRICADE.METAL': 'Metal Barricade',
@@ -204,7 +205,7 @@ class deathnotes:
             self.Config['CONFIG_VERSION'] = LATEST_CFG
 
             # NEW CHANGES
-            self.Config['MESSAGES']['GENERIC'] = ('{victim} died.', '{victim} has been killed by the gods.')
+            self.Config['WEAPONS']['SEMI_PISTOL.WEAPON'] = 'Semi-Automatic Pistol'
 
         # SAVE CHANGES
         self.SaveConfig()
@@ -309,6 +310,8 @@ class deathnotes:
 
             if vic:
 
+                raw['victim'] = str(vic)
+
                 # IS VICTIM A PLAYER OR NPC PLAYER?
                 if vic.ToPlayer():
 
@@ -355,17 +358,17 @@ class deathnotes:
                     raw['victim'] = ANIMALS[animal] if animal in ANIMALS else animal
                     msg = 'ANIMAL DEATH'
 
-            # DEBUG REPORT
-            #self.debug(LINE)
-            #self.debug(' # REPORT')
-            #self.debug(LINE)
-            #self.debug('- DAMAGE : %s' % dmg)
-            #self.debug('- VICTIM : %s ( %s )' % (raw['victim'], vic))
-            #self.debug('- ATTACKER : %s ( %s )' % (raw['attacker'], att))
-            #self.debug('- WEAPON : %s' % raw['weapon'])
-            #self.debug('- BODY PART : %s' % raw['bodypart'])
-            #self.debug('- DISTANCE : %s' % raw['distance'])
-            #self.debug(LINE)
+                # DEBUG REPORT
+                #self.debug(LINE)
+                #self.debug(' # REPORT')
+                #self.debug(LINE)
+                #self.debug('- DAMAGE : %s' % dmg)
+                #self.debug('- VICTIM : %s ( %s )' % (raw['victim'], vic))
+                #self.debug('- ATTACKER : %s ( %s )' % (raw['attacker'], att))
+                #self.debug('- WEAPON : %s' % raw['weapon'])
+                #self.debug('- BODY PART : %s' % raw['bodypart'])
+                #self.debug('- DISTANCE : %s' % raw['distance'])
+                #self.debug(LINE)
 
             if msg:
 
