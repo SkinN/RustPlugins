@@ -3,7 +3,7 @@ import time
 import BasePlayer
 
 DEV = False
-LATEST_CFG = 0.1
+LATEST_CFG = 0.2
 LINE = '-'*50
 PROFILE = '76561198203401038'
 
@@ -14,8 +14,8 @@ class overthrone:
         self.Title = 'OverThrone'
         self.Author = 'SkinN & OMNI-Hollow'
         self.description = 'Reign Of Kings king system re-imagined on Rust'
-        self.Version = V(0, 0, 1)
-        self.ResourceId=1169
+        self.Version = V(0, 0, 2)
+        self.ResourceId = 1169
 
     # -------------------------------------------------------------------------
     # - CONFIGURATION / DATABASE SYSTEM
@@ -27,15 +27,17 @@ class overthrone:
             'SETTINGS': {
                 'BROADCAST TO CONSOLE': True,
                 'PREFIX': '<#9B7E7A>Over<end><#CA1F0C>Throne<end>',
-                'ENABLE KING CMD': True
+                'KING PREFIX': '<#CECECE>[ <#A435E4>KING<end> ]<end>',
+                'ENABLE KING CMD': True,
+                'ENABLE KING PREFIX': True
             },
             'MESSAGES': {
-                'FIRST KING': 'This land had no King until today, <#901BD4>{king}<end> is now the King of the land!',
+                'FIRST KING': 'This land had no King until today, <#A435E4>{king}<end> is now the King of the land!',
                 'ANNOUNCE NEW KING': 'Sir <red>{attacker}<end> killed King <cyan>{lastking}<end> and is now our new King, all hail the new King!',
                 'TELL KINGSHIP LOST': 'You were killed by <red>{attacker}<end> and lost your throne. You are no longer King of the land!',
-                'NOTIFY KINGSHIP LOSS': 'While away you were killed by <red>{attacker}<end> and lost the throne. The current king is <#901BD4>{king}<end>.',
+                'NOTIFY KINGSHIP LOSS': 'While away you were killed by <red>{attacker}<end> and lost the throne. The current king is <#A435E4>{king}<end>.',
                 'YOU ARE KING': 'You are the King of the land, since <lime>{time}H<end> ago.',
-                'WHO IS KING': 'The land is ruled by King <#901BD4>{king}<end>, since <lime>{time}H<end> ago.',
+                'WHO IS KING': 'The land is ruled by King <#A435E4>{king}<end>, since <lime>{time}H<end> ago.',
                 'NO KING YET': 'No one is ruling the land yet. Kill someone to be the first to claim the land!'
             },
             'COMMANDS': {
@@ -43,7 +45,8 @@ class overthrone:
             },
             'COLORS': {
                 'PREFIX': '#CECECE',
-                'SYSTEM': '#CECECE'
+                'SYSTEM': '#CECECE',
+                'KING CHAT': 'white'
             }
         }
 
@@ -65,6 +68,10 @@ class overthrone:
 
             self.Config['CONFIG_VERSION'] = LATEST_CFG
 
+            self.Config['SETTINGS']['ENABLE KING PREFIX'] = True
+            self.Config['SETTINGS']['KING PREFIX'] = '<#CECECE>[ <#A435E4>KING<end> ]<end>',
+            self.Config['COLORS']['KING CHAT'] = 'white'
+
         self.SaveConfig()
 
     # -------------------------------------------------------------------------
@@ -85,7 +92,7 @@ class overthrone:
             print('[%s v%s] :: %s' % (self.Title, str(self.Version), self.format(text, True)))
 
     # -------------------------------------------------------------------------
-    def say(self, text, color='white', f=True, profile=PROFILE):
+    def say(self, text, color='white', profile=PROFILE, f=True, con=True):
         ''' Function to send a message to all players '''
 
         if self.prefix and f:
@@ -96,7 +103,9 @@ class overthrone:
 
             rust.BroadcastChat(self.format('<%s>%s<end>' % (color, text)), None, str(profile))
 
-        self.con(text)
+        if con:
+
+            self.con(text)
 
     # -------------------------------------------------------------------------
     def tell(self, player, text, color='white', f=True, profile=PROFILE):
@@ -180,8 +189,8 @@ class overthrone:
 
         if not self.db:
 
+            # Default Database
             self.db['KING'] = False
-            self.db['KING_NAME'] = False 
             self.db['KINGSMEN'] = {}
             self.db['QUEUE'] = {}
             self.db['SINCE'] = 0.0
@@ -190,7 +199,20 @@ class overthrone:
 
         else:
 
+            # Changes To Database Keys
+            if 'KING NAME' in self.db:
+
+                del self.db['KING NAME']
+
             self.con('* Loading Database')
+
+        # Check King persistence
+        if self.db['KING']:
+
+            if not self.find(self.db['KING']):
+
+                self.db['KING'] = False
+                self.db['KINGSMEN'].clear()
 
         # Create Plugin Commands
         for cmd in CMDS:
@@ -257,7 +279,7 @@ class overthrone:
 
                         self.db['QUEUE'][vic_id] = att.displayName
 
-            # Otherwise name the first King
+            # Otherwise name the as new King
             else:
 
                 self.db['KING'] = att_id
@@ -283,6 +305,36 @@ class overthrone:
             self.tell(player, MSG['NOTIFY KINGSHIP LOSS'].format(attacker=att, king=king.displayName), COLOR['SYSTEM'])
 
             del self.db['QUEUE'][uid]
+
+    # -------------------------------------------------------------------------
+    def OnPlayerChat(self, args):
+
+        text = args.GetString(0, 'text')
+        player = args.connection.player
+        uid = self.playerid(player)
+
+        # Is Player the actual King?
+        if uid == self.db['KING']:
+
+            prefix = PLUGIN['KING PREFIX']
+
+            if player.IsAdmin():
+
+                name_color = '#ADFF64'
+
+            else:
+
+                name_color = '#6496E1'
+
+            name = '<%s>%s<end>' % (name_color, player.displayName)
+
+            text = '%s %s: <%s>%s<end>' % (prefix, name, COLOR['KING CHAT'], text)
+
+            self.say(text, COLOR['KING CHAT'], uid, False, False)
+
+            print(self.format(text, True))
+
+            return False
 
     #--------------------------------------------------------------------------
     # - PLUGIN FUNTIONS
