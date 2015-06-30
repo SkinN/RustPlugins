@@ -15,7 +15,7 @@ class notifier:
     def __init__(self):
 
         self.Title = 'Notifier'
-        self.Version = V(2, 8, 0)
+        self.Version = V(2, 8, 1)
         self.Author = 'SkinN'
         self.Description = 'Broadcasts chat messages as notifications and advertising.'
         self.ResourceId = 797
@@ -272,6 +272,7 @@ class notifier:
         self.cache = {}
         self.connected = []
         self.lastadvert = 0
+        self.cmds = []
 
         # Countries Data
         self.countries = data.GetData('notifier_countries_db')
@@ -300,7 +301,9 @@ class notifier:
         # Create Plugin Commands
         for cmd in CMDS:
 
-            if cmd and PLUGIN['ENABLE %s' % cmd]:
+            if PLUGIN['ENABLE %s' % cmd]:
+
+                self.cmds.append(cmd)
 
                 if isinstance(CMDS[cmd], tuple):
 
@@ -312,21 +315,11 @@ class notifier:
 
                     command.AddChatCommand(CMDS[cmd], self.Plugin, '%s_CMD' % cmd.replace(' ','_').lower())
 
-            else:
-
-                try:
-
-                    CMDS.remove(cmd)
-
-                except:
-
-                    del CMDS[cmd]
-
         self.con('* Enabling commands:')
 
-        if CMDS:
+        if self.cmds:
 
-            for cmd in CMDS:
+            for cmd in self.cmds:
 
                 if isinstance(CMDS[cmd], tuple):
 
