@@ -6,7 +6,7 @@ import UnityEngine.Random as random
 from System import Action, Int32, String
 
 DEV = False
-LATEST_CFG = 4.1
+LATEST_CFG = 4.2
 LINE = '-' * 50
 PROFILE = '76561198235146288'
 
@@ -15,7 +15,7 @@ class notifier:
     def __init__(self):
 
         self.Title = 'Notifier'
-        self.Version = V(2, 9, 0)
+        self.Version = V(2, 9, 1)
         self.Author = 'SkinN'
         self.Description = 'Broadcasts chat messages as notifications and advertising.'
         self.ResourceId = 797
@@ -175,7 +175,7 @@ class notifier:
     def UpdateConfig(self):
         ''' Function to update the configuration file on plugin Init '''
 
-        if self.Config['CONFIG_VERSION'] <= LATEST_CFG - 0.2 or DEV:
+        if (self.Config['CONFIG_VERSION'] <= LATEST_CFG - 0.2) or DEV:
 
             self.con('* Configuration version is too old, reseting to default')
 
@@ -198,59 +198,73 @@ class notifier:
 
             self.con('* Applying new changes to configuration file')
 
+            if self.Config['CONFIG_VERSION'] < 4.1:
+
+                # Commands
+                for i in self.Config['COMMANDS']:
+
+                    a = 'ENABLE %s CMD' % i
+
+                    if a in self.Config['SETTINGS']:
+
+                        self.Config['SETTINGS']['ENABLE %s' % i] = self.Config['SETTINGS'][a]
+
+                        del self.Config['SETTINGS'][a]
+
+                # Change old settigns
+                for i in ('CHAT PLAYERS LIST', 'CONSOLE PLAYERS LIST'):
+
+                    if i in self.Config['SETTINGS']:
+
+                        a = i.split()
+
+                        self.Config['SETTINGS']['PLAYERS LIST ON %s' % a[0]] = self.Config['SETTINGS'][i]
+
+                        del self.Config['SETTINGS'][i]
+
+                if 'ENABLE HELPTEXT' in self.Config['SETTINGS']:
+
+                    del self.Config['SETTINGS']['ENABLE HELPTEXT']
+
+                if 'SYSTEM' not in self.Config['COLORS']:
+
+                    self.Config['COLORS']['SYSTEM'] = 'white'
+
+                for x in ('MESSAGES', 'COMMANDS', 'SETTINGS'):
+
+                    # Rename Server Map
+                    for item in self.Config[x]:
+
+                        if 'SERVER MAP' in item:
+
+                            a = item.replace('SERVER MAP', 'MAP LINK')
+
+                            self.Config[x][a] = self.Config[x][item]
+
+                            del self.Config[x][item]
+
+                # New stuff
+                self.Config['MESSAGES']['ADVERTS DESC'] = '<orange>/adverts<end> <grey>-<end> Allows Admins to change the adverts interval ( i.g: /adverts 5 )'
+                self.Config['MESSAGES']['SYNTAX ERROR'] = 'Syntax Error: {syntax}'
+                self.Config['MESSAGES']['ADVERTS INTERVAL CHANGED'] = 'Adverts interval changed to <lime>{minutes}<end> minutes'
+
+                self.Config['COMMANDS']['ADVERTS COMMAND'] = 'adverts'
+
+                self.Config['SETTINGS']['ENABLE ADVERTS COMMAND'] = True
+
+            if self.Config['CONFIG_VERSION'] < 4.2:
+
+                self.Config['MESSAGES']['JOIN MESSAGE'] = self.Config['MESSAGES']['JOIN MESSAGE'].replace('{username}', '{user}')
+                self.Config['MESSAGES']['LEAVE MESSAGE'] = self.Config['MESSAGES']['LEAVE MESSAGE'].replace('{username}', '{user}')
+
+                self.Config['MESSAGES']['PLAYERS ONLINE'] = 'There are <lime>{active}<end> players online.'
+                self.Config['MESSAGES']['CHECK CONSOLE'] = 'Check the console (press F1) for more info.'
+                self.Config['MESSAGES']['PLAYERS STATS'] = '<orange>SLEEPERS: <lime>{sleepers}<end> ALLTIME PLAYERS: <lime>{alltime}<end><end>'
+
+                if 'ONLY PLAYER' in self.Config['MESSAGES']: del self.Config['MESSAGES']['ONLY PLAYER']
+                if 'CHECK CONSOLE NOTE' in self.Config['MESSAGES']: del self.Config['MESSAGES']['CHECK CONSOLE NOTE']
+
             self.Config['CONFIG_VERSION'] = LATEST_CFG
-
-            # Commands
-            for i in self.Config['COMMANDS']:
-
-                a = 'ENABLE %s CMD' % i
-
-                if a in self.Config['SETTINGS']:
-
-                    self.Config['SETTINGS']['ENABLE %s' % i] = self.Config['SETTINGS'][a]
-
-                    del self.Config['SETTINGS'][a]
-
-            # Change old settigns
-            for i in ('CHAT PLAYERS LIST', 'CONSOLE PLAYERS LIST'):
-
-                if i in self.Config['SETTINGS']:
-
-                    a = i.split()
-
-                    self.Config['SETTINGS']['PLAYERS LIST ON %s' % a[0]] = self.Config['SETTINGS'][i]
-
-                    del self.Config['SETTINGS'][i]
-
-            if 'ENABLE HELPTEXT' in self.Config['SETTINGS']:
-
-                del self.Config['SETTINGS']['ENABLE HELPTEXT']
-
-            if 'SYSTEM' not in self.Config['COLORS']:
-
-                self.Config['COLORS']['SYSTEM'] = 'white'
-
-            for x in ('MESSAGES', 'COMMANDS', 'SETTINGS'):
-
-                # Rename Server Map
-                for item in self.Config[x]:
-
-                    if 'SERVER MAP' in item:
-
-                        a = item.replace('SERVER MAP', 'MAP LINK')
-
-                        self.Config[x][a] = self.Config[x][item]
-
-                        del self.Config[x][item]
-
-            # New stuff
-            self.Config['MESSAGES']['ADVERTS DESC'] = '<orange>/adverts<end> <grey>-<end> Allows Admins to change the adverts interval ( i.g: /adverts 5 )'
-            self.Config['MESSAGES']['SYNTAX ERROR'] = 'Syntax Error: {syntax}'
-            self.Config['MESSAGES']['ADVERTS INTERVAL CHANGED'] = 'Adverts interval changed to <lime>{minutes}<end> minutes'
-
-            self.Config['COMMANDS']['ADVERTS COMMAND'] = 'adverts'
-
-            self.Config['SETTINGS']['ENABLE ADVERTS COMMAND'] = True
 
         self.SaveConfig()
 
@@ -299,9 +313,9 @@ class notifier:
     def log(self, filename, text):
         ''' Logs text into a specific file '''
 
-        filename = 'notifier_%s_%s' % (filename, self.log_date())
+        filename = 'notifier_%s_%s.txt' % (filename, self.log_date())
 
-        sv.Log('Oxide/Logs/%s.txt' % filename, text)
+        sv.Log('oxide/logs/' + filename, text)
 
     # -------------------------------------------------------------------------
     # - PLUGIN HOOKS
@@ -431,7 +445,7 @@ class notifier:
                 
                 if not (PLUGIN['HIDE ADMINS'] and int(ply['auth']) > 0):
 
-                    self.say(MSG['LEAVE MESSAGE'].format(user=self.playername(player), **ply), COLOR['LEAVE MESSAGE'], uid)
+                    self.say(MSG['LEAVE MESSAGE'].replace('{user}', self.playername(player)).format(**ply), COLOR['LEAVE MESSAGE'], uid)
 
             # Log disconnect
             self.log('connections', '{player} disconnected from {country} [UID: {steamid}][IP: {ip}]'.format(**ply))
@@ -455,9 +469,9 @@ class notifier:
                 self.tell(player, '%s | %s:' % (self.prefix, MSG['RULES TITLE']), f=False)
                 self.tell(player, LINE, f=False)
 
-                if PLUGIN['RULES LANGUAGE'] != 'AUTO':
+                if PLUGIN['RULES LANGUAGE'] != 'AUTO' and not args:
 
-                    self.tell(player, 'DISPLAYING RULES IN: %s' % self.countries[PLUGIN['RULES LANGUAGE']], COLOR['SYSTEM'], f=False)
+                    self.tell(player, 'DISPLAYING RULES IN: <lime>%s<end>' % PLUGIN['RULES LANGUAGE'], COLOR['SYSTEM'], f=False)
 
                 for n, line in enumerate(rules):
 
@@ -744,7 +758,7 @@ class notifier:
 
                     if not (PLUGIN['HIDE ADMINS'] and int(ply['auth']) > 0):
 
-                        self.say(MSG['JOIN MESSAGE'].format(user=self.playername(player), **ply), COLOR['JOIN MESSAGE'], uid)
+                        self.say(MSG['JOIN MESSAGE'].replace('{user}', self.playername(player)).format(**ply), COLOR['JOIN MESSAGE'], uid)
 
                 # Log player connection to file
                 self.log('connections', '{player} connected from {country} [UID: {steamid}][IP: {ip}]'.format(**ply))
