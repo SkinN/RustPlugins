@@ -6,7 +6,7 @@ import UnityEngine.Random as random
 from System import Action, Int32, String
 
 DEV = False
-LATEST_CFG = 4.0
+LATEST_CFG = 4.1
 LINE = '-' * 50
 PROFILE = '76561198235146288'
 
@@ -15,7 +15,7 @@ class notifier:
     def __init__(self):
 
         self.Title = 'Notifier'
-        self.Version = V(2, 8, 1)
+        self.Version = V(2, 9, 0)
         self.Author = 'SkinN'
         self.Description = 'Broadcasts chat messages as notifications and advertising.'
         self.ResourceId = 797
@@ -43,7 +43,8 @@ class notifier:
                 'ENABLE ADMINS LIST': False,
                 'ENABLE PLUGINS LIST': False,
                 'ENABLE RULES': True,
-                'ENABLE SERVER MAP': True
+                'ENABLE MAP LINK': True,
+                'ENABLE ADVERTS COMMAND': True
             },
             'MESSAGES': {
                 'JOIN MESSAGE': '{user} joined the server, from <lime>{country}<end>.',
@@ -51,10 +52,12 @@ class notifier:
                 'CHECK CONSOLE': 'Check the console (press F1) for more info.',
                 'PLAYERS ONLINE': 'There are <lime>{active}<end> players online.',
                 'PLAYERS STATS': '<orange>SLEEPERS: <lime>{sleepers}<end> ALLTIME PLAYERS: <lime>{alltime}<end><end>',
-                'SERVER MAP': 'See where you are on the server map at: <lime>http://{ip}:{port}<end>',
+                'MAP LINK': 'See where you are on the server map at: <lime>http://{ip}:{port}<end>',
                 'NO RULES': 'Error, no rules found, contact the Admins.',
                 'NO LANG': 'Error, <lime>{args}<end> language not supported or does not exist.',
                 'NO ADMINS': 'There are no Admins online.',
+                'ADVERTS INTERVAL CHANGED': 'Adverts interval changed to <lime>{minutes}<end> minutes',
+                'SYNTAX ERROR': 'Syntax Error: {syntax}',
                 'ADMINS LIST TITLE': 'ADMINS ONLINE',
                 'PLUGINS LIST TITLE': 'SERVER PLUGINS',
                 'PLAYERS LIST TITLE': 'PLAYERS ONLINE',
@@ -63,7 +66,8 @@ class notifier:
                 'ADMINS LIST DESC': '<orange>/admins<end> <grey>-<end> List of online <cyan>Admins<end> in the server.',
                 'PLUGINS LIST DESC': '<orange>/plugins<end> <grey>-<end> List of plugins installed in the server.',
                 'RULES DESC': '<orange>/rules<end> <grey>-<end> List of server rules.',
-                'SERVER MAP DESC': '<orange>/map<end> <grey>-<end> Server map url.'
+                'MAP LINK DESC': '<orange>/map<end> <grey>-<end> Server map url.',
+                'ADVERTS DESC': '<orange>/adverts<end> <grey>-<end> Allows Admins to change the adverts interval ( i.g: /adverts 5 )'
             },
             'WELCOME MESSAGE': (
                 '<size=17>Welcome {player}!</size>',
@@ -92,7 +96,8 @@ class notifier:
                 'RULES': ('rules', 'regras', 'regles'),
                 'PLUGINS LIST': 'plugins',
                 'ADMINS LIST': 'admins',
-                'SERVER MAP': 'map'
+                'MAP LINK': 'map',
+                'ADVERTS COMMAND': 'adverts'
             },
             'RULES': {
                 'EN': (
@@ -182,7 +187,7 @@ class notifier:
 
             self.LoadDefaultConfig()
 
-            # Save Adverts and Rules or config reset
+            # Save Adverts, Welcome Message and Rules on config reset
             if not DEV:
 
                 self.Config['ADVERTS'] = adverts
@@ -194,6 +199,58 @@ class notifier:
             self.con('* Applying new changes to configuration file')
 
             self.Config['CONFIG_VERSION'] = LATEST_CFG
+
+            # Commands
+            for i in self.Config['COMMANDS']:
+
+                a = 'ENABLE %s CMD' % i
+
+                if a in self.Config['SETTINGS']:
+
+                    self.Config['SETTINGS']['ENABLE %s' % i] = self.Config['SETTINGS'][a]
+
+                    del self.Config['SETTINGS'][a]
+
+            # Change old settigns
+            for i in ('CHAT PLAYERS LIST', 'CONSOLE PLAYERS LIST'):
+
+                if i in self.Config['SETTINGS']:
+
+                    a = i.split()
+
+                    self.Config['SETTINGS']['PLAYERS LIST ON %s' % a[0]] = self.Config['SETTINGS'][i]
+
+                    del self.Config['SETTINGS'][i]
+
+            if 'ENABLE HELPTEXT' in self.Config['SETTINGS']:
+
+                del self.Config['SETTINGS']['ENABLE HELPTEXT']
+
+            if 'SYSTEM' not in self.Config['COLORS']:
+
+                self.Config['COLORS']['SYSTEM'] = 'white'
+
+            for x in ('MESSAGES', 'COMMANDS', 'SETTINGS'):
+
+                # Rename Server Map
+                for item in self.Config[x]:
+
+                    if 'SERVER MAP' in item:
+
+                        a = item.replace('SERVER MAP', 'MAP LINK')
+
+                        self.Config[x][a] = self.Config[x][item]
+
+                        del self.Config[x][item]
+
+            # New stuff
+            self.Config['MESSAGES']['ADVERTS DESC'] = '<orange>/adverts<end> <grey>-<end> Allows Admins to change the adverts interval ( i.g: /adverts 5 )'
+            self.Config['MESSAGES']['SYNTAX ERROR'] = 'Syntax Error: {syntax}'
+            self.Config['MESSAGES']['ADVERTS INTERVAL CHANGED'] = 'Adverts interval changed to <lime>{minutes}<end> minutes'
+
+            self.Config['COMMANDS']['ADVERTS COMMAND'] = 'adverts'
+
+            self.Config['SETTINGS']['ENABLE ADVERTS COMMAND'] = True
 
         self.SaveConfig()
 
@@ -242,7 +299,7 @@ class notifier:
     def log(self, filename, text):
         ''' Logs text into a specific file '''
 
-        filename = 'Notifier - %s - (%s)' % (filename, self.log_date())
+        filename = 'notifier_%s_%s' % (filename, self.log_date())
 
         sv.Log('Oxide/Logs/%s.txt' % filename, text)
 
@@ -273,6 +330,7 @@ class notifier:
         self.connected = []
         self.lastadvert = 0
         self.cmds = []
+        self.adverts_loop = False
 
         # Countries Data
         self.countries = data.GetData('notifier_countries_db')
@@ -293,8 +351,6 @@ class notifier:
             self.con('* Starting Adverts loop, set to %s minute/s' % mins)
 
         else:
-
-            self.adverts_loop = None
 
             self.con('* Adverts are disabled')
 
@@ -378,7 +434,7 @@ class notifier:
                     self.say(MSG['LEAVE MESSAGE'].format(user=self.playername(player), **ply), COLOR['LEAVE MESSAGE'], uid)
 
             # Log disconnect
-            self.log('Connections', '{player} disconnected from {country} [UID: {steamid}][IP: {ip}]'.format(**ply))
+            self.log('connections', '{player} disconnected from {country} [UID: {steamid}][IP: {ip}]'.format(**ply))
 
         # Decache player
         if uid in self.cache: del self.cache[uid]
@@ -503,10 +559,37 @@ class notifier:
                 self.tell(player, '<lime>{plugin.Title}<end> <grey>v{plugin.Version}<end> by {plugin.Author}'.format(plugin=i), f=False)
 
     # --------------------------------------------------------------------------
-    def server_map_CMD(self, player, cmd, args):
+    def map_link_CMD(self, player, cmd, args):
         ''' Server Map command function '''
 
-        self.tell(player, MSG['SERVER MAP'].format(ip=str(sv.ip), port=str(sv.port)))
+        self.tell(player, MSG['MAP LINK'].format(ip=str(sv.ip), port=str(sv.port)))
+
+    # --------------------------------------------------------------------------
+    def adverts_command_CMD(self, player, cmd, args):
+        ''' Adverts Command command function '''
+
+        if args:
+
+            if player.IsAdmin() and self.adverts_loop:
+
+                try:
+
+                    n = int(args[0])
+
+                    if n:
+
+                        self.adverts_loop.Destroy()
+                        self.adverts_loop = timer.Repeat(n * 60, 0, Action(self.send_advert), self.Plugin)
+
+                        PLUGIN['ADVERTS INTERVAL'] = n
+
+                        self.SaveConfig()
+
+                        self.tell(player, MSG['ADVERTS INTERVAL CHANGED'].format(minutes=str(n)), COLOR['SYSTEM'])
+
+                except: self.tell(player, MSG['SYNTAX ERROR'].format(syntax='/adverts <minutes> (i.g /adverts 5)'), 'red')
+
+        else: self.tell(player, MSG['SYNTAX ERROR'].format(syntax='/adverts <minutes> (i.g /adverts 5)'), 'red')
 
     # --------------------------------------------------------------------------
     def plugin_CMD(self, player, cmd, args):
@@ -543,7 +626,7 @@ class notifier:
 
         name = player.displayName
 
-        if player.IsAdmin():
+        if player.IsAdmin() and not PLUGIN['HIDE ADMINS']:
 
             return '<%s>%s<end>' % (self.a_color, name)
 
@@ -664,7 +747,7 @@ class notifier:
                         self.say(MSG['JOIN MESSAGE'].format(user=self.playername(player), **ply), COLOR['JOIN MESSAGE'], uid)
 
                 # Log player connection to file
-                self.log('Connections', '{player} connected from {country} [UID: {steamid}][IP: {ip}]'.format(**ply))
+                self.log('connections', '{player} connected from {country} [UID: {steamid}][IP: {ip}]'.format(**ply))
 
                 # Welcome Messages
                 if PLUGIN['ENABLE WELCOME MESSAGE']:
@@ -760,6 +843,7 @@ class notifier:
 
         return {
             'Unknown': 'Unknown',
+            'NZ': 'New Zealand',
             'AF': 'Afghanistan',
             'AS': 'American Samoa',
             'AD': 'Andorra',
