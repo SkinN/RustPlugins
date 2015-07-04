@@ -3,7 +3,7 @@
 # ==============================================================================
 # STAB      = KNIFES / SPEARS / PICKAXES / ARROW / ICEPICK / GRENADES(?)
 # SLASH     = SALVAGE AXE / HATCHETS / BARRICADES / FLOOR SPIKES
-# BLUNT     = TORCH / ROCK / SALVAGE HAMMER
+# BLUNT     = TORCH / ROCK / SALVAGE HAMMER / LANDMINE
 # BITE      = ANIMALS / SNAP TRAP
 # BULLET    = GUNS / BOW
 # EXPLOSION = C4 / ROCKET
@@ -26,7 +26,7 @@ from UnityEngine import Vector3
 
 # GLOBAL VARIABLES
 DEV = False
-LATEST_CFG = 4.3
+LATEST_CFG = 4.4
 LINE = '-' * 50
 
 class deathnotes:
@@ -39,7 +39,7 @@ class deathnotes:
         self.Title = 'Death Notes'
         self.Author = 'SkinN'
         self.Description = 'Broadcasts players/animals deaths to chat'
-        self.Version = V(2, 5, 5)
+        self.Version = V(2, 6, 0)
         self.ResourceId = 819
 
     # ==========================================================================
@@ -57,6 +57,7 @@ class deathnotes:
                 'SHOW EXPLOSION DEATHS': True,
                 'SHOW TRAP DEATHS': True,
                 'SHOW ANIMAL DEATHS': False,
+                'SHOW BARRICADE DEATHS': True,
                 'SHOW PLAYER KILLS': True,
                 'SHOW ANIMAL KILLS': True,
                 'MESSAGE IN RADIUS': False,
@@ -85,7 +86,8 @@ class deathnotes:
                 'POISON': ('{victim} died poisoned.',),
                 'SUICIDE': ('{victim} committed suicide.', '{victim} has put an end to his life.'),
                 'GENERIC': ('{victim} died.', '{victim} has been killed by the gods.'),
-                'TRAP': ('{victim} died stuck on a {attacker}.',),
+                'TRAP': ('{victim} stepped on a {attacker}.',),
+                'BARRICADE': ('{victim} died stuck on a {attacker}.',),
                 'STAB': ('{attacker} stabbed {victim} to death with a {weapon} and hit the {bodypart}.',),
                 'STAB SLEEP': ('{attacker} stabbed {victim}, while he slept.',),
                 'SLASH': ('{attacker} sliced {victim} into pieces with a {weapon} and hit the {bodypart}.',),
@@ -162,14 +164,18 @@ class deathnotes:
                 'GRENADE.BEANCAN.DEPLOYED': 'Beancan Grenade',
                 'TIMED.EXPLOSIVE.DEPLOYED': 'Timed Explosive Charge',
                 'SMG.WEAPON': 'Custom SMG',
-                'SEMI_PISTOL.WEAPON': 'Semi-Automatic Pistol'
+                'SEMI_PISTOL.WEAPON': 'Semi-Automatic Pistol',
+                'BONE_CLUB.WEAPON': 'Bone Club'
             },
             'TRAPS': {
+                'FLOOR_SPIKES': 'Wooden Floor Spike',
+                'BEARTRAP': 'Snap Trap',
+                'LANDMINE': 'Landmine'
+            },
+            'BARRICADES': {
                 'BARRICADE.METAL': 'Metal Barricade',
                 'BARRICADE.WOOD': 'Wooden Barricade',
-                'BARRICADE.WOODWIRE': 'Barbed Wooden Barricade',
-                'FLOOR_SPIKES': 'Wooden Floor Spikes',
-                'BEARTRAP': 'Snap Trap'
+                'BARRICADE.WOODWIRE': 'Barbed Wooden Barricade'
             },
             'ANIMALS': {
                 'STAG': 'Stag',
@@ -205,7 +211,24 @@ class deathnotes:
             self.Config['CONFIG_VERSION'] = LATEST_CFG
 
             # NEW CHANGES
-            self.Config['WEAPONS']['SEMI_PISTOL.WEAPON'] = 'Semi-Automatic Pistol'
+            self.Config['SETTINGS']['SHOW BARRICADE DEATHS'] = True
+
+            self.Config['WEAPONS']['BONE_CLUB.WEAPON'] = 'Bone Club'
+
+            self.Config['MESSAGES']['BARRICADE'] = ('{victim} died stuck on a {attacker}.',)
+            self.Config['MESSAGES']['TRAP'] = ('{victim} stepped on a {attacker}.',)
+
+            self.Config['BARRICADES'] = {
+                'BARRICADE.METAL': 'Metal Barricade',
+                'BARRICADE.WOOD': 'Wooden Barricade',
+                'BARRICADE.WOODWIRE': 'Barbed Wooden Barricade'
+            }
+
+            self.Config['TRAPS']['LANDMINE'] = 'Landmine'
+
+            for i in ('BARRICADE.METAL' ,'BARRICADE.WOOD' , 'BARRICADE.WOODWIRE'):
+
+                del self.Config['TRAPS'][i]
 
         # SAVE CHANGES
         self.SaveConfig()
@@ -218,17 +241,12 @@ class deathnotes:
         if self.Config['CONFIG_VERSION'] < LATEST_CFG or DEV:
             self.UpdateConfig()
 
-        global MSG, PLUGIN, COLOR, PARTS, WEAPONS, TRAPS, ANIMALS
-        MSG = self.Config['MESSAGES']
-        TRAPS = self.Config['TRAPS']
-        COLOR = self.Config['COLORS']
-        PARTS = self.Config['BODYPARTS']
-        PLUGIN = self.Config['SETTINGS']
-        WEAPONS = self.Config['WEAPONS']
-        ANIMALS = self.Config['ANIMALS']
+        global MSG, PLUGIN, COLOR, PARTS, WEAPONS, TRAPS, ANIMALS, BARRICADES
+        MSG, TRAPS, COLOR, PARTS, PLUGIN, WEAPONS, ANIMALS, BARRICADES = (
+            self.Config[i] for i in ('MESSAGES', 'TRAPS', 'COLORS', 'BODYPARTS', 'SETTINGS', 'WEAPONS', 'ANIMALS', 'BARRICADES')
+        )
 
         self.prefix = '<color=%s>%s</color>' % (COLOR['PREFIX'], PLUGIN['PREFIX']) if PLUGIN['PREFIX'] else None
-        self.title = '<color=red>%s</color>' % self.Title.upper()
         self.metabolism = ('DROWNED', 'HEAT', 'COLD', 'THIRST', 'POISON', 'HUNGER', 'RADIATION', 'BLEEDING', 'FALL', 'GENERIC')
 
         command.AddChatCommand('deathnotes', self.Plugin, 'plugin_CMD')
@@ -236,9 +254,9 @@ class deathnotes:
     # ==========================================================================
     # <>> MESSAGE FUNTIONS
     # ==========================================================================
-    def console(self, text, force=False):
+    def console(self, text, f=False):
 
-        if self.Config['SETTINGS']['BROADCAST TO CONSOLE'] or force:
+        if self.Config['SETTINGS']['BROADCAST TO CONSOLE'] or f:
             print('[%s v%s] :: %s' % (self.Title, str(self.Version), text))
 
     # --------------------------------------------------------------------------
@@ -256,9 +274,9 @@ class deathnotes:
             rust.BroadcastChat('<color=%s>%s</color>' % (color, text), None, str(userid))
 
     # --------------------------------------------------------------------------
-    def tell(self, player, text, color='white', userid=0, force=True):
+    def tell(self, player, text, color='white', userid=0, f=True):
 
-        if self.prefix and force:
+        if self.prefix and f:
             rust.SendChatMessage(player, '%s <color=white>:</color> <color=%s>%s</color>' % (self.prefix, color, text), None, str(userid))
         else:
             rust.SendChatMessage(player, '<color=%s>%s</color>' % (color, text), None, str(userid))
@@ -340,10 +358,16 @@ class deathnotes:
                         msg = 'EXPLOSION'
 
                     # IS ATTACKER A TRAP?
-                    elif dmg in ('SLASH', 'STAB') or 'beartrap' in str(att) and PLUGIN['SHOW TRAP DEATHS']:
+                    elif raw['attacker'] in ('LANDMINE', 'Snap Trap', 'FLOOR_SPIKES') and PLUGIN['SHOW TRAP DEATHS']:
 
                         raw['attacker'] = TRAPS[raw['attacker']] if raw['attacker'] in TRAPS else raw['attacker']
                         msg = 'TRAP'
+
+                    # IS ATTACKER A BARRICADE?
+                    elif dmg in ('SLASH', 'STAB') and PLUGIN['SHOW BARRICADE DEATHS']:
+
+                        raw['attacker'] = BARRICADES[raw['attacker']] if raw['attacker'] in BARRICADES else raw['attacker']
+                        msg = 'BARRICADE'
 
                     # IS ATTACKER AN ANIMAL?
                     elif dmg == 'BITE' and PLUGIN['SHOW ANIMAL KILLS']:
@@ -362,6 +386,7 @@ class deathnotes:
                 #self.debug(LINE)
                 #self.debug(' # REPORT')
                 #self.debug(LINE)
+                #self.debug('- MESSAGE TYPE: %s' % msg if msg else 'None')
                 #self.debug('- DAMAGE : %s' % dmg)
                 #self.debug('- VICTIM : %s ( %s )' % (raw['victim'], vic))
                 #self.debug('- ATTACKER : %s ( %s )' % (raw['attacker'], att))
@@ -381,8 +406,7 @@ class deathnotes:
                 if msg:
 
                     # PLACE NAMES COLORS
-                    for n in raw:
-                        clr[n] = '<color=%s>%s</color>' % (COLOR[n.upper()], raw[n])
+                    for n in raw: clr[n] = '<color=%s>%s</color>' % (COLOR[n.upper()], raw[n])
 
                     # FILTER MESSAGE
                     try:
@@ -429,11 +453,11 @@ class deathnotes:
     # ==========================================================================
     def plugin_CMD(self, player, cmd, args):
 
-        self.tell(player, LINE, force=False)
-        self.tell(player, '<color=lime>%s v%s</color> by <color=lime>SkinN</color>' % (self.title, self.Version), force=False)
-        self.tell(player, self.Description, 'lime', force=False)
-        self.tell(player, '| RESOURSE ID: <color=lime>%s</color> | CONFIG: v<color=lime>%s</color> |' % (self.ResourceId, self.Config['CONFIG_VERSION']), force=False)
-        self.tell(player, LINE, force=False)
-        self.tell(player, '<< Click the icon to contact me.', userid='76561197999302614', force=False)
+        self.tell(player, LINE, f=False)
+        self.tell(player, '<color=lime>Death Notes v%s</color> by <color=lime>SkinN</color>' % self.Version, f=False)
+        self.tell(player, self.Description, 'lime', f=False)
+        self.tell(player, '| RESOURSE ID: <color=lime>%s</color> | CONFIG: v<color=lime>%s</color> |' % (self.ResourceId, self.Config['CONFIG_VERSION']), f=False)
+        self.tell(player, LINE, f=False)
+        self.tell(player, '<< Click the icon to contact me.', userid='76561197999302614', f=False)
 
 # ==============================================================================
