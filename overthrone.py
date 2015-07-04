@@ -14,7 +14,7 @@ class overthrone:
         self.Title = 'OverThrone'
         self.Author = 'SkinN & OMNI-Hollow'
         self.Description = 'Reign Of Kings king system re-imagined on Rust'
-        self.Version = V(0, 0, 3)
+        self.Version = V(0, 0, 4)
         self.ResourceId = 1169
 
     # -------------------------------------------------------------------------
@@ -119,7 +119,7 @@ class overthrone:
 
         else:
 
-            rust.BroadcastChat(self.format('<%s>%s<end>' % (color, text)), None, str(profile))
+            rust.BroadcastChat(self.format('<%s>%s<end>' % (color, text)), None, PROFILE if not profile else profile)
 
         if con:
 
@@ -135,7 +135,7 @@ class overthrone:
 
         else:
 
-            rust.SendChatMessage(player, self.format('<%s>%s<end>' % (color, text)), None, str(profile))
+            rust.SendChatMessage(player, self.format('<%s>%s<end>' % (color, text)), None, PROFILE if not profile else profile)
 
     # -------------------------------------------------------------------------
     def format(self, text, con=False):
