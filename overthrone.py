@@ -1,9 +1,9 @@
-﻿import re
+import re
 import time
 import BasePlayer
 
 DEV = False
-LATEST_CFG = 0.2
+LATEST_CFG = 0.3
 LINE = '-'*50
 PROFILE = '76561198203401038'
 
@@ -13,8 +13,8 @@ class overthrone:
 
         self.Title = 'OverThrone'
         self.Author = 'SkinN & OMNI-Hollow'
-        self.description = 'Reign Of Kings king system re-imagined on Rust'
-        self.Version = V(0, 0, 2)
+        self.Description = 'Reign Of Kings king system re-imagined on Rust'
+        self.Version = V(0, 0, 3)
         self.ResourceId = 1169
 
     # -------------------------------------------------------------------------
@@ -29,7 +29,9 @@ class overthrone:
                 'PREFIX': '<#9B7E7A>Over<end><#CA1F0C>Throne<end>',
                 'KING PREFIX': '<#CECECE>[ <#A435E4>KING<end> ]<end>',
                 'ENABLE KING CMD': True,
-                'ENABLE KING PREFIX': True
+                'ENABLE RESET KING CMD': True,
+                'ENABLE KING PREFIX': True,
+                'ENABLE PLUGIN ICON': True
             },
             'MESSAGES': {
                 'FIRST KING': 'This land had no King until today, <#A435E4>{king}<end> is now the King of the land!',
@@ -38,15 +40,22 @@ class overthrone:
                 'NOTIFY KINGSHIP LOSS': 'While away you were killed by <red>{attacker}<end> and lost the throne. The current king is <#A435E4>{king}<end>.',
                 'YOU ARE KING': 'You are the King of the land, since <lime>{time}H<end> ago.',
                 'WHO IS KING': 'The land is ruled by King <#A435E4>{king}<end>, since <lime>{time}H<end> ago.',
-                'NO KING YET': 'No one is ruling the land yet. Kill someone to be the first to claim the land!'
+                'NO KING YET': 'No one is ruling the land yet. Kill someone to be the first to claim the land!',
+                'KING DESC': '<orange>/king<end> <grey>-<end> Tells who is the current King and for how long.',
+                'RESET KING DESC': '<orange>/resetking<end> <grey>-<end> Resets the King system, living no one as King. ( <cyan>Admins Only<end> )',
+                'NO ACCESS': 'You are not allowed to use this command.',
+                'KING RESETED': 'An <cyan>Admin<end> has reset the <orange>King System<end>, the land is now without a King!'
             },
             'COMMANDS': {
-                'KING': 'king'
+                'KING': 'king',
+                'RESET KING': 'resetking'
             },
             'COLORS': {
                 'PREFIX': '#CECECE',
                 'SYSTEM': '#CECECE',
-                'KING CHAT': 'white'
+                'KING CHAT': 'white',
+                'ADMIN NAME': '#ADFF64',
+                'PLAYER NAME': '#6496E1'
             }
         }
 
@@ -66,11 +75,20 @@ class overthrone:
 
         else:
 
-            self.Config['CONFIG_VERSION'] = LATEST_CFG
+            self.Config['SETTINGS']['ENABLE PLUGIN ICON'] = True
+            self.Config['SETTINGS']['ENABLE RESET KING CMD'] = True
 
-            self.Config['SETTINGS']['ENABLE KING PREFIX'] = True
-            self.Config['SETTINGS']['KING PREFIX'] = '<#CECECE>[ <#A435E4>KING<end> ]<end>',
-            self.Config['COLORS']['KING CHAT'] = 'white'
+            self.Config['COLORS']['ADMIN NAME'] = '#ADFF64'
+            self.Config['COLORS']['PLAYER NAME'] = '#6496E1'
+
+            self.Config['COMMANDS']['RESET KING'] = 'resetking'
+
+            self.Config['MESSAGES']['NO ACCESS'] = 'You are not allowed to use this command.'
+            self.Config['MESSAGES']['KING RESETED'] = 'An <cyan>Admin<end> has reset the <orange>King System<end>, the land is now without a King!'
+            self.Config['MESSAGES']['KING DESC'] = '<orange>/king<end> <grey>-<end> Tells who is the current King and for how long.'
+            self.Config['MESSAGES']['RESET KING DESC'] = '<orange>/resetking<end> <grey>-<end> Resets the King system, living no one as King. ( <cyan>Admins Only<end> )'
+
+            self.Config['CONFIG_VERSION'] = LATEST_CFG
 
         self.SaveConfig()
 
@@ -92,12 +110,12 @@ class overthrone:
             print('[%s v%s] :: %s' % (self.Title, str(self.Version), self.format(text, True)))
 
     # -------------------------------------------------------------------------
-    def say(self, text, color='white', profile=PROFILE, f=True, con=True):
+    def say(self, text, color='white', profile=False, f=True, con=True):
         ''' Function to send a message to all players '''
 
         if self.prefix and f:
 
-            rust.BroadcastChat(self.format('[ %s ] <%s>%s<end>' % (self.prefix, color, text)), None, str(profile))
+            rust.BroadcastChat(self.format('[ %s ] <%s>%s<end>' % (self.prefix, color, text)), None, PROFILE if not profile else profile)
 
         else:
 
@@ -108,12 +126,12 @@ class overthrone:
             self.con(text)
 
     # -------------------------------------------------------------------------
-    def tell(self, player, text, color='white', f=True, profile=PROFILE):
+    def tell(self, player, text, color='white', f=True, profile=False):
         ''' Function to send a message to a player '''
 
         if self.prefix and f:
 
-            rust.SendChatMessage(player, self.format('[ %s ] <%s>%s<end>' % (self.prefix, color, text)), None, str(profile))
+            rust.SendChatMessage(player, self.format('[ %s ] <%s>%s<end>' % (self.prefix, color, text)), None, PROFILE if not profile else profile)
 
         else:
 
@@ -178,19 +196,27 @@ class overthrone:
             self.con('* Configuration file is up to date')
 
         # Global / Class Variables
-        global MSG, PLUGIN, COLOR, STRINGS
+        global MSG, PLUGIN, COLOR, CMDS
         MSG, COLOR, PLUGIN, CMDS = [self.Config[x] for x in ('MESSAGES', 'COLORS', 'SETTINGS', 'COMMANDS')]
 
         self.prefix = '<%s>%s<end>' % (COLOR['PREFIX'], PLUGIN['PREFIX']) if PLUGIN['PREFIX'] else None
         self.dbname = 'overthrone_db'
 
-        # Load Database
+        # Use OverThrone icon?
+        if not PLUGIN['ENABLE PLUGIN ICON']:
+
+            global PROFILE
+
+            PROFILE = '0'
+
+        # Load Databas
         self.db = data.GetData(self.dbname)
 
         if not self.db:
 
             # Default Database
             self.db['KING'] = False
+            self.db['KING_NAME'] = False
             self.db['KINGSMEN'] = {}
             self.db['QUEUE'] = {}
             self.db['SINCE'] = 0.0
@@ -199,20 +225,25 @@ class overthrone:
 
         else:
 
-            # Changes To Database Keys
-            if 'KING NAME' in self.db:
-
-                del self.db['KING NAME']
-
             self.con('* Loading Database')
 
-        # Check King persistence
-        if self.db['KING']:
+            # Changes To Database Keys
+            if 'KING_NAME' not in self.db:
 
-            if not self.find(self.db['KING']):
+                self.db['KING_NAME'] = 'Unknown'
 
-                self.db['KING'] = False
-                self.db['KINGSMEN'].clear()
+            # Update King
+            if self.db['KING']:
+
+                for player in self.playerslist():
+
+                    uid = self.playerid(player)
+
+                    if uid == self.db['KING_NAME']:
+
+                        self.db['KING_NAME'] = player.displayName
+
+                self.con('* Updating King data')
 
         # Create Plugin Commands
         for cmd in CMDS:
@@ -235,6 +266,10 @@ class overthrone:
 
         else: self.con('  - There are no commands enabled')
 
+        command.AddConsoleCommand('overthrone.resetking', self.Plugin, 'plugin_CMD')
+
+        command.AddChatCommand('overthrone', self.Plugin, 'plugin_CMD')
+
         self.con(LINE)
 
     # -------------------------------------------------------------------------
@@ -243,7 +278,7 @@ class overthrone:
         ''' Hook called whenever an entity dies '''
 
         # Is victim a player and attacker?
-        if (not 'corpse' in str(vic) and vic and 'player' in str(vic)) and (hitinfo and hitinfo.Initiator and 'player' in str(hitinfo.Initiator)):
+        if not 'corpse' in str(vic) and vic and 'player' in str(vic) and (hitinfo and hitinfo.Initiator and 'player' in str(hitinfo.Initiator)):
 
             att = hitinfo.Initiator
             vic_id = self.playerid(vic)
@@ -263,6 +298,7 @@ class overthrone:
 
                     # Replace King
                     self.db['KING'] = att_id
+                    self.db['KING_NAME'] = att.displayName
                     self.db['SINCE'] = time.time()
                     self.db['KINGSMEN'].clear()
 
@@ -283,6 +319,7 @@ class overthrone:
             else:
 
                 self.db['KING'] = att_id
+                self.db['KING_NAME'] = att.displayName
                 self.db['KINGSMEN'].clear()
                 self.db['SINCE'] = time.time()
 
@@ -300,11 +337,14 @@ class overthrone:
         if uid in self.db['QUEUE']:
 
             att = self.db['QUEUE'][uid]
-            king = self.find(self.db['KING'])
 
-            self.tell(player, MSG['NOTIFY KINGSHIP LOSS'].format(attacker=att, king=king.displayName), COLOR['SYSTEM'])
+            self.tell(player, MSG['NOTIFY KINGSHIP LOSS'].format(attacker=att, king=self.db['KING_NAME']), COLOR['SYSTEM'])
 
             del self.db['QUEUE'][uid]
+
+        elif uid == self.db['KING']:
+
+            self.db['KING_NAME'] = player.displayName
 
     # -------------------------------------------------------------------------
     def OnPlayerChat(self, args):
@@ -318,13 +358,7 @@ class overthrone:
 
             prefix = PLUGIN['KING PREFIX']
 
-            if player.IsAdmin():
-
-                name_color = '#ADFF64'
-
-            else:
-
-                name_color = '#6496E1'
+            name_color = COLOR['ADMIN NAME'] if player.IsAdmin() else COLOR['PLAYER NAME']
 
             name = '<%s>%s<end>' % (name_color, player.displayName)
 
@@ -332,12 +366,12 @@ class overthrone:
 
             self.say(text, COLOR['KING CHAT'], uid, False, False)
 
-            print(self.format(text, True))
+            rust.RunServerCommand('global.echo', self.format(text, True))
 
             return False
 
     #--------------------------------------------------------------------------
-    # - PLUGIN FUNTIONS
+    # - PLUGIN FUNTIONS / HOOKS
     def get_time(self, stamp):
         ''' Returns exact hours, minutes and seconds from a timestamp '''
 
@@ -353,20 +387,16 @@ class overthrone:
         return rust.UserIDFromPlayer(player)
 
     # -------------------------------------------------------------------------
-    def find(self, uid):
-        ''' Function to find the BasePlayer of a player whether is On or Off '''
+    def playerslist(self):
+        ''' Returns list of active players in the server '''
 
-        ply = BasePlayer.Find(uid)
+        return BasePlayer.activePlayerList
 
-        if not ply:
+    # -------------------------------------------------------------------------
+    def SendHelpText(self, player):
+        ''' Hook called from HelpText plugin '''
 
-            for i in BasePlayer.sleepingPlayerList:
-
-                if self.playerid(i) == uid:
-
-                    ply = i
-
-        return ply
+        self.tell(player, 'For all <#9B7E7A>Over<end><#CA1F0C>Throne<end>\'s commands type <orange>/overthrone help<end>', f=False)
 
     #--------------------------------------------------------------------------
     # - COMMAND BLOCKS
@@ -385,12 +415,53 @@ class overthrone:
 
             else:
 
-                king = self.find(self.db['KING'])
-
-                self.tell(player, MSG['WHO IS KING'].format(time=since, king=king.displayName), COLOR['SYSTEM'])
+                self.tell(player, MSG['WHO IS KING'].format(time=since, king=self.db['KING_NAME']), COLOR['SYSTEM'])
 
         else:
 
             self.tell(player, MSG['NO KING YET'], COLOR['SYSTEM'])
+
+    # -------------------------------------------------------------------------
+    def reset_king_CMD(self, player=None, cmd=None, args=None):
+        ''' Resets the king and restarts the King system '''
+
+        if player and not player.IsAdmin():
+
+            self.tell(player, MSG['NO ACCESS'], COLOR['SYSTEM'])
+
+            return
+
+        if self.db['KING']:
+
+            self.db['KING'] = False
+            self.db['KING_NAME'] = False
+            self.db['KINGSMEN'].clear()
+            self.db['SINCE'] = 0.0
+
+            self.say(MSG['KING RESETED'], COLOR['SYSTEM'])
+
+    # -------------------------------------------------------------------------
+    def plugin_CMD(self, player, cmd, args):
+        '''
+            - Plugin command - Information of the plugin
+            - Help Option - Description of all enabled commands
+        '''
+
+        if args and args[0] == 'help':
+
+            self.tell(player, '%s | Commands Description:' % self.prefix, f=False)
+            self.tell(player, LINE, f=False)
+
+            for cmd in CMDS:
+
+                i = '%s DESC' % cmd
+
+                if i in MSG: self.tell(player, MSG[i], f=False)
+
+        else:
+
+            self.tell(player, '<size=18><#9B7E7A>Over<end><#CA1F0C>Throne<end></size> <grey>v%s<end>' % self.Version, 'silver', False, '76561198203401038')
+            self.tell(player, self.Description, 'silver', False, '76561198203401038')
+            self.tell(player, 'Plugin powered by <orange>Oxide 2<end> and developed by <#9810FF>SkinN<end>', 'silver', False, '76561197999302614')
 
     # -------------------------------------------------------------------------
