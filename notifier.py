@@ -6,7 +6,7 @@ import UnityEngine.Random as random
 from System import Action, Int32, String
 
 DEV = False
-LATEST_CFG = 4.2
+LATEST_CFG = 5.1
 LINE = '-' * 50
 PROFILE = '76561198235146288'
 
@@ -15,7 +15,7 @@ class notifier:
     def __init__(self):
 
         self.Title = 'Notifier'
-        self.Version = V(2, 9, 1)
+        self.Version = V(2, 10, 0)
         self.Author = 'SkinN'
         self.Description = 'Broadcasts chat messages as notifications and advertising.'
         self.ResourceId = 797
@@ -31,15 +31,18 @@ class notifier:
                 'PREFIX': 'NOTIFIER',
                 'BROADCAST TO CONSOLE': True,
                 'RULES LANGUAGE': 'AUTO',
-                'HIDE ADMINS': False,
+                'HIDE ADMINS': True,
                 'PLAYERS LIST ON CHAT': True,
                 'PLAYERS LIST ON CONSOLE': True,
-                'ADVERTS INTERVAL': 5,
+                'ADVERTS INTERVAL': 6,
+                'ENABLE PLAYERS DEFAULT COLORS': True,
+                'ENABLE PLUGIN ICON': True,
                 'ENABLE JOIN MESSAGE': True,
                 'ENABLE LEAVE MESSAGE': True,
                 'ENABLE WELCOME MESSAGE': True,
                 'ENABLE ADVERTS': True,
                 'ENABLE PLAYERS LIST': True,
+                'ENABLE PLAYERS ONLINE': True,
                 'ENABLE ADMINS LIST': False,
                 'ENABLE PLUGINS LIST': False,
                 'ENABLE RULES': True,
@@ -47,33 +50,36 @@ class notifier:
                 'ENABLE ADVERTS COMMAND': True
             },
             'MESSAGES': {
-                'JOIN MESSAGE': '{user} joined the server, from <lime>{country}<end>.',
-                'LEAVE MESSAGE': '{user} left the server.',
+                'JOIN MESSAGE': '{username} joined the server, from <orange>{country}<end>.',
+                'LEAVE MESSAGE': '{username} left the server.',
                 'CHECK CONSOLE': 'Check the console (press F1) for more info.',
-                'PLAYERS ONLINE': 'There are <lime>{active}<end> players online.',
-                'PLAYERS STATS': '<orange>SLEEPERS: <lime>{sleepers}<end> ALLTIME PLAYERS: <lime>{alltime}<end><end>',
+                'PLAYERS ONLINE': 'There are <lime>{active}<end>/<lime>{maxplayers}<end> players online.',
+                'ADMINS ONLINE': 'There are <cyan>{admins} Admins<end> online.',
+                'PLAYERS STATS': 'Sleepers: <lime>{sleepers}<end> Alltime Players: <lime>{alltime}<end>',
                 'MAP LINK': 'See where you are on the server map at: <lime>http://{ip}:{port}<end>',
-                'NO RULES': 'Error, no rules found, contact the Admins.',
+                'NO RULES': 'Error, no rules found, contact the <cyan>Admins<end>.',
                 'NO LANG': 'Error, <lime>{args}<end> language not supported or does not exist.',
-                'NO ADMINS': 'There are no Admins online.',
+                'NO ADMINS': 'There are no <cyan>Admins<end> online.',
                 'ADVERTS INTERVAL CHANGED': 'Adverts interval changed to <lime>{minutes}<end> minutes',
                 'SYNTAX ERROR': 'Syntax Error: {syntax}',
                 'ADMINS LIST TITLE': 'ADMINS ONLINE',
                 'PLUGINS LIST TITLE': 'SERVER PLUGINS',
-                'PLAYERS LIST TITLE': 'PLAYERS ONLINE',
+                'PLAYERS LIST TITLE': 'PLAYERS LIST',
+                'PLAYERS ONLINE TITLE': 'PLAYERS ONLINE',
                 'RULES TITLE': 'SERVER RULES',
                 'PLAYERS LIST DESC': '<orange>/players<end> <grey>-<end> List of all players in the server.',
                 'ADMINS LIST DESC': '<orange>/admins<end> <grey>-<end> List of online <cyan>Admins<end> in the server.',
                 'PLUGINS LIST DESC': '<orange>/plugins<end> <grey>-<end> List of plugins installed in the server.',
                 'RULES DESC': '<orange>/rules<end> <grey>-<end> List of server rules.',
                 'MAP LINK DESC': '<orange>/map<end> <grey>-<end> Server map url.',
-                'ADVERTS DESC': '<orange>/adverts<end> <grey>-<end> Allows Admins to change the adverts interval ( i.g: /adverts 5 )'
+                'ADVERTS DESC': '<orange>/adverts<end> <grey>-<end> Allows <cyan>Admins<end> to change the adverts interval ( i.g: /adverts 5 )',
+                'PLAYERS ONLINE DESC': '<orange>/online<end> <grey>-<end> Shows the number of players and <cyan>Admins<end> online, plus a few server stats.'
             },
             'WELCOME MESSAGE': (
-                '<size=17>Welcome {player}!</size>',
-                '<grey><size=20>•</size><end> Type <orange>/help<end> for all available commands.',
-                '<grey><size=20>•</size><end> Check our server <orange>/rules<end>.',
-                '<grey><size=20>•</size><end> See where you are on the server map at: <lime>http://{ip}:{port}<end>'
+                '<size=17>Welcome {username}</size>',
+                '<orange><size=20>•</size><end> Type <orange>/help<end> for all available commands.',
+                '<orange><size=20>•</size><end> Check our server <orange>/rules<end>.',
+                '<orange><size=20>•</size><end> See where you are on the server map at: <lime>http://{server.ip}:{server.port}<end>'
             ),
             'ADVERTS': (
                 'Want to know the available commands? Type <orange>/help<end>.',
@@ -81,21 +87,24 @@ class notifier:
                 'This server is running <orange>Oxide 2<end>.',
                 '<red>Cheat is strictly prohibited.<end>',
                 'Type <orange>/map<end> for the server map link.',
-                '<orange>Players Online: <lime>{players}<end> / <lime>{maxplayers}<end> Sleepers: <lime>{sleepers}<end><end>'
+                'You are playing on: <lime>{server.hostname}<end>',
+                '<orange>Players Online: <lime>{players}<end> / <lime>{server.maxplayers}<end> Sleepers: <lime>{sleepers}<end><end>'
             ),
             'COLORS': {
                 'PREFIX': '#00EEEE',
-                'JOIN MESSAGE': '#BEBEBE',
-                'LEAVE MESSAGE': '#BEBEBE',
-                'WELCOME MESSAGE': 'white',
-                'ADVERTS': '#BEBEBE',
-                'SYSTEM': 'white'
+                'JOIN MESSAGE': 'silver',
+                'LEAVE MESSAGE': 'silver',
+                'WELCOME MESSAGE': 'silver',
+                'ADVERTS': 'silver',
+                'SYSTEM': 'white',
+                'BOARDS TITLE': 'silver'
             },
             'COMMANDS': {
                 'PLAYERS LIST': 'players',
                 'RULES': ('rules', 'regras', 'regles'),
                 'PLUGINS LIST': 'plugins',
                 'ADMINS LIST': 'admins',
+                'PLAYERS ONLINE': 'online',
                 'MAP LINK': 'map',
                 'ADVERTS COMMAND': 'adverts'
             },
@@ -165,6 +174,12 @@ class notifier:
                     'Поважайте всіх гравців',
                     'Щоб уникнути спаму в чаті.',
                     'Грати чесно і не зловживати помилки / подвиги.'
+                ),
+                'RO': (
+                    'Cheaturile sunt strict interzise!',
+                    'Respectați toți jucătorii!',
+                    'Evitați spamul în chat!',
+                    'Jucați corect și nu abuzați de bug-uri/exploituri!'
                 )
             }
         }
@@ -180,89 +195,25 @@ class notifier:
             self.con('* Configuration version is too old, reseting to default')
 
             adverts = self.Config['ADVERTS']
-            rules = self.Config['RULES']
-            welcome = self.Config['WELCOME MESSAGE']
 
             self.Config.clear()
 
             self.LoadDefaultConfig()
 
-            # Save Adverts, Welcome Message and Rules on config reset
-            if not DEV:
-
-                self.Config['ADVERTS'] = adverts
-                self.Config['RULES'] = rules
-                self.Config['WELCOME MESSAGE'] = welcome
+            if not DEV: self.Config['ADVERTS'] = adverts
 
         else:
 
             self.con('* Applying new changes to configuration file')
 
-            if self.Config['CONFIG_VERSION'] < 4.1:
-
-                # Commands
-                for i in self.Config['COMMANDS']:
-
-                    a = 'ENABLE %s CMD' % i
-
-                    if a in self.Config['SETTINGS']:
-
-                        self.Config['SETTINGS']['ENABLE %s' % i] = self.Config['SETTINGS'][a]
-
-                        del self.Config['SETTINGS'][a]
-
-                # Change old settigns
-                for i in ('CHAT PLAYERS LIST', 'CONSOLE PLAYERS LIST'):
-
-                    if i in self.Config['SETTINGS']:
-
-                        a = i.split()
-
-                        self.Config['SETTINGS']['PLAYERS LIST ON %s' % a[0]] = self.Config['SETTINGS'][i]
-
-                        del self.Config['SETTINGS'][i]
-
-                if 'ENABLE HELPTEXT' in self.Config['SETTINGS']:
-
-                    del self.Config['SETTINGS']['ENABLE HELPTEXT']
-
-                if 'SYSTEM' not in self.Config['COLORS']:
-
-                    self.Config['COLORS']['SYSTEM'] = 'white'
-
-                for x in ('MESSAGES', 'COMMANDS', 'SETTINGS'):
-
-                    # Rename Server Map
-                    for item in self.Config[x]:
-
-                        if 'SERVER MAP' in item:
-
-                            a = item.replace('SERVER MAP', 'MAP LINK')
-
-                            self.Config[x][a] = self.Config[x][item]
-
-                            del self.Config[x][item]
-
-                # New stuff
-                self.Config['MESSAGES']['ADVERTS DESC'] = '<orange>/adverts<end> <grey>-<end> Allows Admins to change the adverts interval ( i.g: /adverts 5 )'
-                self.Config['MESSAGES']['SYNTAX ERROR'] = 'Syntax Error: {syntax}'
-                self.Config['MESSAGES']['ADVERTS INTERVAL CHANGED'] = 'Adverts interval changed to <lime>{minutes}<end> minutes'
-
-                self.Config['COMMANDS']['ADVERTS COMMAND'] = 'adverts'
-
-                self.Config['SETTINGS']['ENABLE ADVERTS COMMAND'] = True
-
-            if self.Config['CONFIG_VERSION'] < 4.2:
-
-                self.Config['MESSAGES']['JOIN MESSAGE'] = self.Config['MESSAGES']['JOIN MESSAGE'].replace('{username}', '{user}')
-                self.Config['MESSAGES']['LEAVE MESSAGE'] = self.Config['MESSAGES']['LEAVE MESSAGE'].replace('{username}', '{user}')
-
-                self.Config['MESSAGES']['PLAYERS ONLINE'] = 'There are <lime>{active}<end> players online.'
-                self.Config['MESSAGES']['CHECK CONSOLE'] = 'Check the console (press F1) for more info.'
-                self.Config['MESSAGES']['PLAYERS STATS'] = '<orange>SLEEPERS: <lime>{sleepers}<end> ALLTIME PLAYERS: <lime>{alltime}<end><end>'
-
-                if 'ONLY PLAYER' in self.Config['MESSAGES']: del self.Config['MESSAGES']['ONLY PLAYER']
-                if 'CHECK CONSOLE NOTE' in self.Config['MESSAGES']: del self.Config['MESSAGES']['CHECK CONSOLE NOTE']
+            self.Config['COMMANDS']['PLAYERS ONLINE'] = 'online'
+            self.Config['MESSAGES']['PLAYERS ONLINE DESC'] = '<orange>/online<end> <grey>-<end> Shows the number of players and <cyan>Admins<end> online, plus a few server stats.'
+            self.Config['MESSAGES']['PLAYERS ONLINE'] = 'There are <lime>{active}<end>/<lime>{maxplayers}<end> players online.'
+            self.Config['MESSAGES']['PLAYERS LIST TITLE'] = 'PLAYERS LIST'
+            self.Config['MESSAGES']['PLAYERS ONLINE TITLE'] = 'PLAYERS ONLINE'
+            self.Config['MESSAGES']['ADMINS ONLINE'] = 'There are <cyan>{admins} Admins<end> online.'
+            self.Config['MESSAGES']['PLAYERS STATS'] = 'Sleepers: <lime>{sleepers}<end> Alltime Players: <lime>{alltime}<end>'
+            self.Config['SETTINGS']['ENABLE PLAYERS ONLINE'] = True
 
             self.Config['CONFIG_VERSION'] = LATEST_CFG
 
@@ -278,44 +229,53 @@ class notifier:
             print('[%s v%s] :: %s' % (self.Title, str(self.Version), self.format(text, True)))
 
     # --------------------------------------------------------------------------
-    def pcon(self, player, text, color='#BEBEBE'):
+    def pcon(self, player, text, color='silver'):
         ''' Function to send a message to a player console '''
 
         player.SendConsoleCommand(self.format('echo <%s>%s<end>' % (color, text)))
 
     # -------------------------------------------------------------------------
-    def say(self, text, color='#BEBEBE', f=True, profile=PROFILE):
+    def say(self, text, color='silver', f=True, profile=False):
         ''' Function to send a message to all players '''
 
         if self.prefix and f:
 
-            rust.BroadcastChat(self.format('[ %s ] <%s>%s<end>' % (self.prefix, color, text)), None, str(profile))
+            rust.BroadcastChat(self.format('[ %s ] <%s>%s<end>' % (self.prefix, color, text)), None, PROFILE if not profile else profile)
 
         else:
 
-            rust.BroadcastChat(self.format('<%s>%s<end>' % (color, text)), None, str(profile))
+            rust.BroadcastChat(self.format('<%s>%s<end>' % (color, text)), None, PROFILE if not profile else profile)
 
         self.con(self.format(text, True))
 
     # -------------------------------------------------------------------------
-    def tell(self, player, text, color='#BEBEBE', f=True, profile=PROFILE):
+    def tell(self, player, text, color='silver', f=True, profile=False):
         ''' Function to send a message to a player '''
 
         if self.prefix and f:
 
-            rust.SendChatMessage(player, self.format('[ %s ] <%s>%s<end>' % (self.prefix, color, text)), None, str(profile))
+            rust.SendChatMessage(player, self.format('[ %s ] <%s>%s<end>' % (self.prefix, color, text)), None, PROFILE if not profile else profile)
 
         else:
 
-            rust.SendChatMessage(player, self.format('<%s>%s<end>' % (color, text)), None, str(profile))
+            rust.SendChatMessage(player, self.format('<%s>%s<end>' % (color, text)), None, PROFILE if not profile else profile)
 
     # -------------------------------------------------------------------------
     def log(self, filename, text):
         ''' Logs text into a specific file '''
 
-        filename = 'notifier_%s_%s.txt' % (filename, self.log_date())
+        if self.logs:
 
-        sv.Log('oxide/logs/' + filename, text)
+            try:
+
+                filename = 'notifier_%s_%s.txt' % (filename, self.log_date())
+
+                sv.Log('oxide/logs/%s' % filename, text)
+
+            except:
+
+                self.con('An error as occurred when writing a connection log to a file! ( Missing directory )')
+                self.con('Logs have been are now off, please make sure you have the following path on your server files: %s/oxide/logs' % sv.identity)
 
     # -------------------------------------------------------------------------
     # - PLUGIN HOOKS
@@ -329,27 +289,30 @@ class notifier:
 
             self.UpdateConfig()
 
-        else:
-
-            self.con('Configuration file is up to date')
+        else: self.con('* Configuration file is up to date')
 
         # Global / Class Variables
         global MSG, PLUGIN, COLOR, CMDS, ADVERTS, RULES
-        MSG, COLOR, PLUGIN, CMDS, ADVERTS, RULES = [self.Config[x] for x in ('MESSAGES', 'COLORS', 'SETTINGS', 'COMMANDS', 'ADVERTS', 'RULES')]
+        MSG, COLOR, PLUGIN, CMDS, ADVERTS, RULES = [self.Config[x] for x in \
+        ('MESSAGES', 'COLORS', 'SETTINGS', 'COMMANDS', 'ADVERTS', 'RULES')]
 
         self.prefix = '<%s>%s<end>' % (COLOR['PREFIX'], PLUGIN['PREFIX']) if PLUGIN['PREFIX'] else None
-        self.p_color = '#6496E1'
-        self.a_color = '#ADFF64'
         self.cache = {}
         self.connected = []
         self.lastadvert = 0
-        self.cmds = []
         self.adverts_loop = False
+        self.logs = True
 
         # Countries Data
         self.countries = data.GetData('notifier_countries_db')
         self.countries.update(self.countries_dict())
         data.SaveData('notifier_countries_db')
+
+        # Use Plugin Icon?
+        if not PLUGIN['ENABLE PLUGIN ICON']:
+
+            global PROFILE
+            PROFILE = '0'
 
         # Initiate active players
         for player in self.activelist(): self.OnPlayerInit(player, False)
@@ -364,16 +327,18 @@ class notifier:
 
             self.con('* Starting Adverts loop, set to %s minute/s' % mins)
 
-        else:
-
-            self.con('* Adverts are disabled')
+        else: self.con('* Adverts are disabled')
 
         # Create Plugin Commands
+        n = 0
+
+        self.con('* Enabling commands:')
+
         for cmd in CMDS:
 
             if PLUGIN['ENABLE %s' % cmd]:
 
-                self.cmds.append(cmd)
+                n += 1
 
                 if isinstance(CMDS[cmd], tuple):
 
@@ -381,25 +346,15 @@ class notifier:
 
                         command.AddChatCommand(i, self.Plugin, '%s_CMD' % cmd.replace(' ','_').lower())
 
+                    self.con('  - %s (/%s)' % (cmd.title(), ', /'.join(CMDS[cmd])))
+
                 else:
 
                     command.AddChatCommand(CMDS[cmd], self.Plugin, '%s_CMD' % cmd.replace(' ','_').lower())
 
-        self.con('* Enabling commands:')
+                    self.con('  - %s (/%s)' % (cmd.title(), CMDS[cmd]))
 
-        if self.cmds:
-
-            for cmd in self.cmds:
-
-                if isinstance(CMDS[cmd], tuple):
-
-                    self.con('  - /%s (%s)' % (', /'.join(CMDS[cmd]), cmd.title()))
-
-                else:
-
-                    self.con('  - /%s (%s)' % (CMDS[cmd], cmd.title()))
-
-        else: self.con('  - There are no commands enabled')
+        if not n: self.con('  - No commands are enabled')
 
         command.AddChatCommand('notifier', self.Plugin, 'plugin_CMD')
 
@@ -410,9 +365,7 @@ class notifier:
         ''' Hook called on plugin unload '''
 
         # Destroy adverts loop
-        if self.adverts_loop:
-
-            self.adverts_loop.Destroy()
+        if self.adverts_loop: self.adverts_loop.Destroy()
 
     # -------------------------------------------------------------------------
     # - PLAYER HOOKS
@@ -423,9 +376,7 @@ class notifier:
 
         uid = self.playerid(player)
 
-        if uid not in self.connected:
-
-            self.connected.append(uid)
+        if uid not in self.connected: self.connected.append(uid)
 
         self.webrequest_filter(player, send)
 
@@ -445,10 +396,10 @@ class notifier:
                 
                 if not (PLUGIN['HIDE ADMINS'] and int(ply['auth']) > 0):
 
-                    self.say(MSG['LEAVE MESSAGE'].replace('{user}', self.playername(player)).format(**ply), COLOR['LEAVE MESSAGE'], uid)
+                    self.say(MSG['LEAVE MESSAGE'].format(**ply), COLOR['LEAVE MESSAGE'], uid)
 
             # Log disconnect
-            self.log('connections', '{player} disconnected from {country} [UID: {steamid}][IP: {ip}]'.format(**ply))
+            self.log('connections', '{username} disconnected from {country} [UID: {steamid}][IP: {ip}]'.format(**ply))
 
         # Decache player
         if uid in self.cache: del self.cache[uid]
@@ -464,42 +415,42 @@ class notifier:
 
             rules = RULES[lang]
 
+            s = {
+                'EN': 'English', 'PT': 'Portuguese', 'ES': 'Spanish',
+                'RO': 'Romanian', 'FR': 'French', 'IT': 'Italian',
+                'DK': 'Danish', 'TR': 'Turk', 'NL': 'Dutch',
+                'RU': 'Russian', 'UA': 'Ukrainian', 'DE': 'German'
+            }
+
             if rules:
 
-                self.tell(player, '%s | %s:' % (self.prefix, MSG['RULES TITLE']), f=False)
+                self.tell(player, '%s | <%s>%s<end>:' % (self.prefix, COLOR['BOARDS TITLE'], MSG['RULES TITLE']), f=False)
                 self.tell(player, LINE, f=False)
-
-                if PLUGIN['RULES LANGUAGE'] != 'AUTO' and not args:
-
-                    self.tell(player, 'DISPLAYING RULES IN: <lime>%s<end>' % PLUGIN['RULES LANGUAGE'], COLOR['SYSTEM'], f=False)
 
                 for n, line in enumerate(rules):
 
                     self.tell(player, '%s. %s' % (n + 1, line), 'orange', f=False)
 
-            else:
+                if lang in s:
 
-                self.tell(player, MSG['NO RULES'], COLOR['white'])
+                    self.tell(player, LINE, f=False)
+                    self.tell(player, 'Language: <grey>%s<end>' % s[lang], 'silver', f=False)
+
+            else: self.tell(player, MSG['NO RULES'], COLOR['white'])
 
     # -------------------------------------------------------------------------
     def players_list_CMD(self, player, cmd, args):
         ''' Players List command function '''
 
-        active = [i for i in self.activelist() if (not PLUGIN['HIDE ADMINS'] and i.IsAdmin() or player.IsAdmin()) or not i.IsAdmin()]
-        sleepers = self.sleeperlist()
+        active = self.activelist()
 
-        title = '%s | %s:' % (self.prefix, MSG['PLAYERS LIST TITLE'])
-        ply_count = MSG['PLAYERS ONLINE'].format(active=str(len(active)))
-        ply_stats = MSG['PLAYERS STATS'].format(sleepers=str(len(sleepers)), alltime=str(len(active) + len(sleepers)))
-
-        chat = PLUGIN['PLAYERS LIST ON CHAT']
-        cons = PLUGIN['PLAYERS LIST ON CONSOLE']
+        title = '%s | <%s>%s<end>:' % (self.prefix, COLOR['BOARDS TITLE'], MSG['PLAYERS LIST TITLE'])
 
         # Show list on chat?
-        if chat:
+        if PLUGIN['PLAYERS LIST ON CHAT']:
 
             # Divide names in chunks before sending to chat
-            names = [self.playername(i) for i in active]
+            names = [self.cache[self.playerid(i)]['username'] for i in active]
             names = [names[i:i+3] for i in xrange(0, len(names), 3)]
 
             self.tell(player, title, f=False)
@@ -508,13 +459,10 @@ class notifier:
             for i in names:
             
                 self.tell(player, ', '.join(i), COLOR['SYSTEM'], f=False)
-            
+
+        if PLUGIN['PLAYERS LIST ON CONSOLE']:
+
             self.tell(player, LINE, f=False)
-            self.tell(player, ply_count, COLOR['SYSTEM'], f=False)
-            self.tell(player, ply_stats, COLOR['SYSTEM'], f=False)
-
-        if cons:
-
             self.tell(player, '(%s)' % MSG['CHECK CONSOLE'], 'orange', f=False)
 
             self.pcon(player, LINE)
@@ -527,43 +475,56 @@ class notifier:
 
                 i = self.cache[self.playerid(ply)]
 
-                self.pcon(player, '<orange>{num}<end> | <yellow>{steamid}<end> | <yellow>{country}<end> | <lime>{user}<end>'.format(
+                self.pcon(player, '<orange>{num}<end> | {steamid}| {countryshort} | <lime>{username}<end>'.format(
                     num='%03d' % (n + 1),
-                    user=self.playername(ply),
-                    country=inv[i['country']],
-                    steamid=i['steamid']
-                ))
+                    countryshort=inv[i['country']],
+                    **i
+                ), 'white')
 
             self.pcon(player, LINE)
-            self.pcon(player, ply_count, COLOR['SYSTEM'])
-            self.pcon(player, ply_stats, COLOR['SYSTEM'])
+            self.pcon(player, MSG['PLAYERS ONLINE'].format(active=str(len(active)), maxplayers=sv.maxplayers), 'orange')
             self.pcon(player, LINE)
+
+    # -------------------------------------------------------------------------
+    def players_online_CMD(self, player, cmd, args):
+        ''' Player Online command function '''
+
+        active = self.activelist()
+        sleepers = self.sleeperlist()
+
+        self.tell(player, '%s | <%s>%s<end>:' % (self.prefix, COLOR['BOARDS TITLE'], MSG['PLAYERS ONLINE TITLE']), f=False)
+        self.tell(player, LINE, f=False)
+        self.tell(player, MSG['PLAYERS ONLINE'].format(active=str(len(active)), maxplayers=str(sv.maxplayers)), f=False)
+
+        if not PLUGIN['HIDE ADMINS']:
+
+            admins = [i for i in active if i.IsAdmin()]
+
+            self.tell(player, MSG['ADMINS ONLINE'].format(admins=str(len(admins))), f=False)
+
+        self.tell(player, MSG['PLAYERS STATS'].format(sleepers=str(len(sleepers)), alltime=str(len(active) + len(sleepers))), f=False)
 
     # --------------------------------------------------------------------------
     def admins_list_CMD(self, player, cmd, args):
         ''' Admins List command function '''
 
-        names = [self.playername(i) for i in self.activelist() if i.IsAdmin()]
+        names = [self.cache[self.playerid(i)]['username'] for i in self.activelist() if i.IsAdmin()]
         names = [names[i:i+3] for i in xrange(0, len(names), 3)]
 
         if names and not PLUGIN['HIDE ADMINS'] or player.IsAdmin():
 
-            self.tell(player, '%s | %s:' % (self.prefix, MSG['ADMINS LIST TITLE']), f=False)
+            self.tell(player, '%s | <%s>%s<end>:' % (self.prefix, COLOR['BOARDS TITLE'], MSG['ADMINS LIST TITLE']), f=False)
             self.tell(player, LINE, f=False)
 
-            for i in names:
+            for i in names: self.tell(player, ', '.join(i), 'white', f=False)
 
-                self.tell(player, ', '.join(i), 'white', f=False)
-
-        else:
-
-            self.tell(player, MSG['NO ADMINS ONLINE'], COLOR['SYSTEM'])
+        else: self.tell(player, MSG['NO ADMINS'], COLOR['SYSTEM'])
 
     # -------------------------------------------------------------------------
     def plugins_list_CMD(self, player, cmd, args):
         ''' Plugins List command function '''
 
-        self.tell(player, '%s | %s:' % (self.prefix, MSG['PLUGINS LIST TITLE']), f=False)
+        self.tell(player, '%s | <%s>%s<end>:' % (self.prefix, COLOR['BOARDS TITLE'], MSG['PLUGINS LIST TITLE']), f=False)
         self.tell(player, LINE, f=False)
 
         for i in plugins.GetAll():
@@ -621,9 +582,9 @@ class notifier:
                 if i in MSG: self.tell(player, MSG[i], f=False)
         else:
 
-            self.tell(player, '<#00EEEE><size=18>NOTIFIER</size> <grey>v%s<end><end>' % self.Version, f=False)
-            self.tell(player, self.Description, f=False)
-            self.tell(player, 'Plugin powered by <orange>Oxide 2<end> and developed by <#9810FF>SkinN<end>', profile='76561197999302614', f=False)
+            self.tell(player, '<#00EEEE><size=18>NOTIFIER</size> <grey>v%s<end><end>' % self.Version, profile='76561198235146288', f=False)
+            self.tell(player, self.Description, profile='76561198235146288', f=False)
+            self.tell(player, 'Plugin developed by <#9810FF>SkinN<end>, powered by <orange>Oxide 2<end>.', profile='76561197999302614', f=False)
 
     # -------------------------------------------------------------------------
     # - PLUGIN FUNCTIONS / HOOKS
@@ -633,20 +594,22 @@ class notifier:
         return rust.UserIDFromPlayer(player)
 
     # -------------------------------------------------------------------------
-    def playername(self, player):
+    def playername(self, con):
         '''
             Returns the player name with player or Admin default name color
         '''
 
-        name = player.displayName
+        if PLUGIN['ENABLE PLAYERS DEFAULT COLORS']:
 
-        if player.IsAdmin() and not PLUGIN['HIDE ADMINS']:
+            if int(con.authLevel) > 0 and not PLUGIN['HIDE ADMINS']:
 
-            return '<%s>%s<end>' % (self.a_color, name)
+                return '<#ADFF64>%s<end>' % con.username
 
-        else:
+            else:
 
-            return '<%s>%s<end>' % (self.p_color, name)
+                return '<#6496E1>%s<end>' % con.username
+
+        else: return con.username
 
     # -------------------------------------------------------------------------
     def playerlang(self, player, f=None):
@@ -656,9 +619,7 @@ class notifier:
 
         if f:
 
-            if f.upper() in RULES:
-
-                return f.upper()
+            if f.upper() in RULES: return f.upper()
 
             else:
 
@@ -677,9 +638,7 @@ class notifier:
 
             return lang if lang in RULES else 'EN'
 
-        else:
-
-            return default if default in RULES else 'EN'
+        else: return default if default in RULES else 'EN'
 
     # -------------------------------------------------------------------------
     def activelist(self):
@@ -710,7 +669,7 @@ class notifier:
             uid = rust.UserIDFromConnection(con)
 
             self.cache[uid] = {
-                'player': con.username,
+                'username': self.playername(con),
                 'steamid': uid,
                 'auth': con.authLevel,
                 'country': 'Unknown',
@@ -726,42 +685,28 @@ class notifier:
             - Welcome Message
         '''
 
-        country = 'undefined'
-        uid = self.playerid(player)
-        ply = self.cache[uid]
-        pip = player.net.connection.ipaddress.split(':')[0]
-
         def response_handler(code, response):
 
             # Webrequest response
             country = response.replace('\n','')
 
-            if country == 'undefined' or code != 200:
-
-                country = 'undefined'
+            if country == 'undefined' or code != 200: country = 'Unknown'
 
             # Cache player country output
-            if country in self.countries:
-
-                country = self.countries[country]
-
-            else:
-
-                country = 'Unknown'
-
-            ply['country'] = country
+            uid = self.playerid(player)
+            self.cache[uid]['country'] = self.countries[country]
 
             if send:
 
                 # Join Message
                 if PLUGIN['ENABLE JOIN MESSAGE']:
 
-                    if not (PLUGIN['HIDE ADMINS'] and int(ply['auth']) > 0):
+                    if not (PLUGIN['HIDE ADMINS'] and int(self.cache[uid]['auth']) > 0):
 
-                        self.say(MSG['JOIN MESSAGE'].replace('{user}', self.playername(player)).format(**ply), COLOR['JOIN MESSAGE'], uid)
+                        self.say(MSG['JOIN MESSAGE'].format(**self.cache[uid]), COLOR['JOIN MESSAGE'], uid)
 
                 # Log player connection to file
-                self.log('connections', '{player} connected from {country} [UID: {steamid}][IP: {ip}]'.format(**ply))
+                self.log('connections', '{username} connected from {country} [UID: {steamid}][IP: {ip}]'.format(**self.cache[uid]))
 
                 # Welcome Messages
                 if PLUGIN['ENABLE WELCOME MESSAGE']:
@@ -774,7 +719,7 @@ class notifier:
 
                         for line in lines:
 
-                            line = line.format(ip=str(sv.ip), port=str(sv.port), hostname=sv.hostname, player=self.playername(player))
+                            line = line.format(server=sv, **self.cache[uid])
 
                             self.tell(player, line, COLOR['WELCOME MESSAGE'], f=False)
 
@@ -784,6 +729,7 @@ class notifier:
 
                         self.con('No lines found on Welcome Message, turning it off')
 
+        pip = player.net.connection.ipaddress.split(':')[0]
         webrequests.EnqueueGet('http://ipinfo.io/%s/country' % pip, Action[Int32,String](response_handler), self.Plugin)
 
     # -------------------------------------------------------------------------
@@ -802,14 +748,7 @@ class notifier:
 
                 self.lastadvert = index
 
-            self.say(ADVERTS[index].format(**{
-                'ip': str(sv.ip),
-                'port': str(sv.ip),
-                'seed': sv.seed if sv.seed else 'Random',
-                'players': len(self.activelist()),
-                'sleepers': len(self.sleeperlist()),
-                'maxplayers': str(sv.maxplayers),
-            }), COLOR['ADVERTS'])
+            self.say(ADVERTS[index].format(players= len(self.activelist()), sleepers=len(self.sleeperlist()), server=sv), COLOR['ADVERTS'])
 
         else:
 
@@ -856,73 +795,255 @@ class notifier:
         ''' Returns a dictionary with countries full name '''
 
         return {
-            'Unknown': 'Unknown',
-            'NZ': 'New Zealand',
-            'AF': 'Afghanistan',
-            'AS': 'American Samoa',
-            'AD': 'Andorra',
-            'AO': 'Angola',
-            'AR': 'Argentina',
-            'AU': 'Australia',
-            'AT': 'Austria',
-            'BE': 'Belgium',
-            'BR': 'Brazil',
-            'BG': 'Bulgaria',
-            'CA': 'Canada',
-            'CV': 'Cape Verde',
-            'CF': 'Central African Republic',
-            'TD': 'Chad',
-            'CL': 'Chile',
-            'CN': 'China',
-            'CO': 'Colombia',
-            'CR': 'Costa Rica',
-            'HR': 'Croatia',
-            'CU': 'Cuba',
-            'CZ': 'Czech Republic',
-            'DK': 'Denmark',
-            'DO': 'Dominican Republic',
-            'EC': 'Ecuador',
-            'EG': 'Egypt',
-            'EE': 'Estonia',
-            'FI': 'Finland',
-            'FR': 'France',
-            'GE': 'Georgia',
-            'DE': 'Germany',
-            'GR': 'Greece',
-            'HN': 'Honduras',
-            'HU': 'Hungary',
-            'IS': 'Iceland',
-            'IN': 'India',
-            'IE': 'Ireland',
-            'IT': 'Italy',
-            'JM': 'Jamaica',
-            'JP': 'Japan',
-            'LU': 'Luxembourg',
-            'FX': 'Metropolitan France',
-            'MX': 'Mexico',
-            'MD': 'Moldova',
-            'MC': 'Monaco',
-            'ME': 'Montenegro',
-            'MA': 'Morocco',
-            'MZ': 'Mozambique',
-            'NO': 'Norway',
-            'PL': 'Poland',
-            'PT': 'Portugal',
-            'PR': 'Puerto Rico',
-            'RO': 'Romania',
-            'RU': 'Russia',
-            'SG': 'Singapore',
-            'SI': 'Slovenia',
-            'ZA': 'South Africa',
-            'ES': 'Spain',
-            'SZ': 'Swaziland',
-            'SE': 'Sweden',
-            'CH': 'Switzerland',
-            'TN': 'Tunisia',
-            'TR': 'Turkey',
-            'UG': 'Uganda',
-            'UA': 'Ukraine',
-            'AE': 'United Arab Emirates',
-            'GB': 'United Kingdom',
-            'US': 'United States'
+            'Unknown':'Unknown',
+            'BD':'Bangladesh',
+            'BE':'Belgium',
+            'BF':'Burkina Faso',
+            'BG':'Bulgaria',
+            'BA':'Bosnia and Herzegovina',
+            'BB':'Barbados',
+            'WF':'Wallis and Futuna',
+            'BN':'Brunei Darussalam',
+            'BO':'Bolivia',
+            'JP':'Japan',
+            'BI':'Burundi',
+            'BJ':'Benin',
+            'BT':'Bhutan',
+            'JM':'Jamaica',
+            'BV':'Bouvet Island',
+            'BW':'Botswana',
+            'WS':'Samoa',
+            'BQ':'British Antarctic Territory',
+            'BR':'Brazil',
+            'BS':'Bahamas',
+            'JE':'Jersey',
+            'BY':'Belarus',
+            'BZ':'Belize',
+            'RU':'Russia',
+            'RW':'RWANDA',
+            'TL':'Timor-Leste',
+            'RE':'Reunion',
+            'PA':'Panama',
+            'BM':'Bermuda',
+            'TJ':'Tajikistan',
+            'RO':'Romania',
+            'TK':'Tokelau',
+            'GW':'Guinea-Bissau',
+            'GU':'Guam',
+            'GT':'Guatemala',
+            'GS':'South Georgia and the South Sandwich Islands',
+            'GR':'Greece',
+            'GQ':'Equatorial Guinea',
+            'GP':'Guadeloupe',
+            'BH':'Bahrain',
+            'GY':'Guyana',
+            'GG':'Guernsey',
+            'GF':'French Guiana',
+            'GE':'Georgia',
+            'GD':'Grenada',
+            'GB':'United Kingdom',
+            'GA':'Gabon',
+            'GN':'Guinea',
+            'GM':'Gambia',
+            'GL':'Greenland',
+            'GI':'Gibraltar',
+            'GH':'Ghana',
+            'OM':'Oman',
+            'IL':'Israel',
+            'JO':'Jordan',
+            'HR':'Croatia',
+            'HT':'Haiti',
+            'HU':'Hungary',
+            'HK':'Hong Kong',
+            'HN':'Honduras',
+            'KM':'Comoros',
+            'HM':'Heard Island and Mcdonald Islands',
+            'VE':'Venezuela',
+            'PR':'Puerto Rico',
+            'PS':'Palestinian Territory, Occupied',
+            'PW':'Palau',
+            'PT':'Portugal',
+            'PU':'U.S. Miscellaneous Pacific Islands',
+            'AF':'Afghanistan',
+            'IQ':'Iraq',
+            'LV':'Latvia',
+            'PF':'French Polynesia',
+            'PG':'Papua New Guinea',
+            'PE':'Peru',
+            'PK':'Pakistan',
+            'PH':'Philippines',
+            'PN':'Pitcairn',
+            'TM':'Turkmenistan',
+            'PL':'Poland',
+            'PM':'Saint Pierre and Miquelon',
+            'ZM':'Zambia',
+            'EH':'Western Sahara',
+            'EE':'Estonia',
+            'EG':'Egypt',
+            'ZA':'South Africa',
+            'EC':'Ecuador',
+            'AL':'Albania',
+            'VN':'Viet Nam',
+            'SB':'Solomon Islands',
+            'ET':'Ethiopia',
+            'SO':'Somalia',
+            'ZW':'Zimbabwe',
+            'SA':'Saudi Arabia',
+            'ES':'Spain',
+            'ER':'Eritrea',
+            'ME':'Montenegro',
+            'MD':'Moldova',
+            'MG':'Madagascar',
+            'MA':'Morocco',
+            'MC':'Monaco',
+            'UZ':'Uzbekistan',
+            'MM':'Myanmar',
+            'ML':'Mali',
+            'MO':'Macao',
+            'MN':'Mongolia',
+            'MH':'Marshall Islands',
+            'US':'United States',
+            'UM':'U.S. Minor Outlying Islands',
+            'MT':'Malta',
+            'MW':'Malawi',
+            'MV':'Maldives',
+            'MQ':'Martinique',
+            'MP':'Northern Mariana Islands',
+            'MS':'Montserrat',
+            'MR':'Mauritania',
+            'IM':'Isle of Man',
+            'UG':'Uganda',
+            'TZ':'Tanzania',
+            'UA':'Ukraine',
+            'MX':'Mexico',
+            'MZ':'Mozambique',
+            'FQ':'French Southern and Antarctic Territories',
+            'FR':'France',
+            'AW':'Aruba',
+            'FX':'Metropolitan France',
+            'SH':'Saint Helena',
+            'SJ':'Svalbard and Jan Mayen',
+            'FI':'Finland',
+            'FJ':'Fiji',
+            'FK':'Falkland Islands (Malvinas)',
+            'FM':'Federated States of Micronesia',
+            'FO':'Faroe Islands',
+            'NI':'Nicaragua',
+            'NL':'Netherlands',
+            'NO':'Norway',
+            'NA':'Namibia',
+            'VU':'Vanuatu',
+            'NC':'New Caledonia',
+            'NE':'Niger',
+            'NF':'Norfolk Island',
+            'NG':'Nigeria',
+            'NZ':'New Zealand',
+            'NP':'Nepal',
+            'NR':'Nauru',
+            'NU':'Niue',
+            'CK':'Cook Islands',
+            'CI':'Cote D"Ivoire',
+            'CH':'Switzerland',
+            'CO':'Colombia',
+            'CN':'China',
+            'CM':'Cameroon',
+            'CL':'Chile',
+            'CC':'Cocos (Keeling) Islands',
+            'CA':'Canada',
+            'CG':'Congo',
+            'CF':'Central African Republic',
+            'CD':'Congo',
+            'CZ':'Czech Republic',
+            'CY':'Cyprus',
+            'CX':'Christmas Island',
+            'CS':'Serbia and Montenegro',
+            'CR':'Costa Rica',
+            'PY':'Paraguay',
+            'CV':'Cape Verde',
+            'CU':'Cuba',
+            'SZ':'Swaziland',
+            'SY':'Syrian Arab Republic',
+            'KG':'Kyrgyzstan',
+            'KE':'Kenya',
+            'SR':'Suriname',
+            'KI':'Kiribati',
+            'KH':'Cambodia',
+            'SV':'El Salvador',
+            'SU':'Union of Soviet Socialist Republics',
+            'ST':'Sao Tome and Principe',
+            'SK':'Slovakia',
+            'KR':'Republic of Korea',
+            'SI':'Slovenia',
+            'KP':'Korea',
+            'KW':'Kuwait',
+            'SN':'Senegal',
+            'SM':'San Marino',
+            'SL':'Sierra Leone',
+            'SC':'Seychelles',
+            'KZ':'Kazakhstan',
+            'KY':'Cayman Islands',
+            'SG':'Singapore',
+            'SE':'Sweden',
+            'SD':'Sudan',
+            'DO':'Dominican Republic',
+            'DM':'Dominica',
+            'DJ':'Djibouti',
+            'DK':'Denmark',
+            'DD':'East Germany',
+            'DE':'Germany',
+            'YE':'Yemen',
+            'DZ':'Algeria',
+            'MK':'Macedonia',
+            'UY':'Uruguay',
+            'YT':'Mayotte',
+            'MU':'Mauritius',
+            'KN':'Saint Kitts and Nevis',
+            'LB':'Lebanon',
+            'LC':'Saint Lucia',
+            'LA':'Lao People"S Democratic Republic',
+            'TV':'Tuvalu',
+            'TW':'Taiwan, Province of China',
+            'TT':'Trinidad and Tobago',
+            'TR':'Turkey',
+            'LK':'Sri Lanka',
+            'LI':'Liechtenstein',
+            'TN':'Tunisia',
+            'TO':'Tonga',
+            'LT':'Lithuania',
+            'LU':'Luxembourg',
+            'LR':'Liberia',
+            'LS':'Lesotho',
+            'TH':'Thailand',
+            'TF':'French Southern Territories',
+            'TG':'Togo',
+            'TD':'Chad',
+            'TC':'Turks and Caicos Islands',
+            'LY':'Libyan Arab Jamahiriya',
+            'VA':'Holy See (Vatican City State)',
+            'VC':'Saint Vincent and the Grenadines',
+            'AE':'United Arab Emirates',
+            'AD':'Andorra',
+            'AG':'Antigua and Barbuda',
+            'VG':'British Virgin Islands',
+            'AI':'Anguilla',
+            'VI':'U.S. Virgin Islands',
+            'IS':'Iceland',
+            'IR':'Iran, Islamic Republic Of',
+            'AM':'Armenia',
+            'IT':'Italy',
+            'AO':'Angola',
+            'AN':'Netherlands Antilles',
+            'AQ':'Antarctica',
+            'AS':'American Samoa',
+            'AR':'Argentina',
+            'AU':'Australia',
+            'AT':'Austria',
+            'IO':'British Indian Ocean Territory',
+            'IN':'India',
+            'AX':'land Islands',
+            'AZ':'Azerbaijan',
+            'IE':'Ireland',
+            'ID':'Indonesia',
+            'MY':'Malaysia',
+            'QA':'Qatar'
         }
