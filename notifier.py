@@ -5,7 +5,7 @@ import ConVar.Server as sv
 import UnityEngine.Random as random
 from System import Action, Int32, String
 
-DEV = False
+DEV = True
 LATEST_CFG = 5.1
 LINE = '-' * 50
 PROFILE = '76561198235146288'
@@ -15,7 +15,7 @@ class notifier:
     def __init__(self):
 
         self.Title = 'Notifier'
-        self.Version = V(2, 10, 1)
+        self.Version = V(2, 10, 2)
         self.Author = 'SkinN'
         self.Description = 'Broadcasts chat messages as notifications and advertising.'
         self.ResourceId = 797
@@ -28,7 +28,7 @@ class notifier:
         self.Config = {
             'CONFIG_VERSION': LATEST_CFG,
             'SETTINGS': {
-                'PREFIX': '<silver>[<end> NOTIFIER <silver>]<end>',
+                'PREFIX': '<white>[<end> <cyan>NOTIFIER<end> <white>]<end>',
                 'BROADCAST TO CONSOLE': True,
                 'RULES LANGUAGE': 'AUTO',
                 'HIDE ADMINS': False,
@@ -81,7 +81,7 @@ class notifier:
                 '<orange><size=20>•</size><end> Check our server <orange>/rules<end>.',
                 '<orange><size=20>•</size><end> See where you are on the server map at: <lime>http://{server.ip}:{server.port}<end>'
             ),
-            'ADVERTS': [
+            'ADVERTS': (
                 'Want to know the available commands? Type <orange>/help<end>.',
                 'Respect the server <orange>/rules<end>.',
                 'This server is running <orange>Oxide 2<end>.',
@@ -89,7 +89,7 @@ class notifier:
                 'Type <orange>/map<end> for the server map link.',
                 'You are playing on: <lime>{server.hostname}<end>',
                 '<orange>Players Online: <lime>{players}<end> / <lime>{server.maxplayers}<end> Sleepers: <lime>{sleepers}<end><end>'
-            ],
+            ),
             'COLORS': {
                 'PREFIX': '#00EEEE',
                 'JOIN MESSAGE': 'silver',
@@ -301,7 +301,7 @@ class notifier:
         MSG, COLOR, PLUGIN, CMDS, ADVERTS, RULES = [self.Config[x] for x in \
         ('MESSAGES', 'COLORS', 'SETTINGS', 'COMMANDS', 'ADVERTS', 'RULES')]
 
-        self.prefix = '<%s>%s<end>' % (COLOR['PREFIX'], PLUGIN['PREFIX']) if PLUGIN['PREFIX'] else None
+        self.prefix = '<%s>%s<end>' % (COLOR['PREFIX'], PLUGIN['PREFIX']) if PLUGIN['PREFIX'] else False
         self.cache = {}
         self.connected = []
         self.lastadvert = 0
@@ -376,14 +376,16 @@ class notifier:
     # - PLAYER HOOKS
     def OnPlayerInit(self, player, send=True):
 
-        # Cache player and list him to connected
-        self.cache_player(player.net.connection)
+        if player and player.net:
 
-        uid = self.playerid(player)
+            # Cache player and list him to connected
+            self.cache_player(player.net.connection)
 
-        if uid not in self.connected: self.connected.append(uid)
+            uid = self.playerid(player)
 
-        self.webrequest_filter(player, send)
+            if uid not in self.connected: self.connected.append(uid)
+
+            self.webrequest_filter(player, send)
 
     # -------------------------------------------------------------------------
     def OnPlayerDisconnected(self, player):
@@ -430,7 +432,7 @@ class notifier:
 
             if rules:
 
-                self.tell(player, '%s | <%s>%s<end>:' % (self.prefix, COLOR['BOARDS TITLE'], MSG['RULES TITLE']), f=False)
+                self.tell(player, '%s <%s>%s<end>:' % (self.prefix if self.prefix else '', COLOR['BOARDS TITLE'], MSG['RULES TITLE']), f=False)
                 self.tell(player, LINE, f=False)
 
                 for n, line in enumerate(rules):
@@ -450,7 +452,7 @@ class notifier:
 
         active = self.activelist()
 
-        title = '%s | <%s>%s<end>:' % (self.prefix, COLOR['BOARDS TITLE'], MSG['PLAYERS LIST TITLE'])
+        title = '%s <%s>%s<end>:' % (self.prefix if self.prefix else '', COLOR['BOARDS TITLE'], MSG['PLAYERS LIST TITLE'])
 
         # Show list on chat?
         if PLUGIN['PLAYERS LIST ON CHAT']:
@@ -498,7 +500,7 @@ class notifier:
         active = self.activelist()
         sleepers = self.sleeperlist()
 
-        self.tell(player, '%s | <%s>%s<end>:' % (self.prefix, COLOR['BOARDS TITLE'], MSG['PLAYERS ONLINE TITLE']), f=False)
+        self.tell(player, '%s <%s>%s<end>:' % (self.prefix if self.prefix else '', COLOR['BOARDS TITLE'], MSG['PLAYERS ONLINE TITLE']), f=False)
         self.tell(player, LINE, f=False)
         self.tell(player, MSG['PLAYERS ONLINE'].format(active=str(len(active)), maxplayers=str(sv.maxplayers)), f=False)
 
@@ -519,7 +521,7 @@ class notifier:
 
         if names and not PLUGIN['HIDE ADMINS'] or player.IsAdmin():
 
-            self.tell(player, '%s | <%s>%s<end>:' % (self.prefix, COLOR['BOARDS TITLE'], MSG['ADMINS LIST TITLE']), f=False)
+            self.tell(player, '%s <%s>%s<end>:' % (self.prefix if self.prefix else '', COLOR['BOARDS TITLE'], MSG['ADMINS LIST TITLE']), f=False)
             self.tell(player, LINE, f=False)
 
             for i in names: self.tell(player, ', '.join(i), 'white', f=False)
@@ -530,7 +532,7 @@ class notifier:
     def plugins_list_CMD(self, player, cmd, args):
         ''' Plugins List command function '''
 
-        self.tell(player, '%s | <%s>%s<end>:' % (self.prefix, COLOR['BOARDS TITLE'], MSG['PLUGINS LIST TITLE']), f=False)
+        self.tell(player, '%s <%s>%s<end>:' % (self.prefix if self.prefix else '', COLOR['BOARDS TITLE'], MSG['PLUGINS LIST TITLE']), f=False)
         self.tell(player, LINE, f=False)
 
         for i in plugins.GetAll():
@@ -578,7 +580,7 @@ class notifier:
 
         if args and args[0] == 'help':
 
-            self.tell(player, '%s | COMMANDS DESCRIPTION:' % self.prefix, f=False)
+            self.tell(player, '%s COMMANDS DESCRIPTION:', f=False)
             self.tell(player, LINE, f=False)
 
             for cmd in CMDS:
