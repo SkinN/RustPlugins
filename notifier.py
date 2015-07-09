@@ -15,7 +15,7 @@ class notifier:
     def __init__(self):
 
         self.Title = 'Notifier'
-        self.Version = V(2, 10, 0)
+        self.Version = V(2, 10, 1)
         self.Author = 'SkinN'
         self.Description = 'Broadcasts chat messages as notifications and advertising.'
         self.ResourceId = 797
@@ -28,10 +28,10 @@ class notifier:
         self.Config = {
             'CONFIG_VERSION': LATEST_CFG,
             'SETTINGS': {
-                'PREFIX': 'NOTIFIER',
+                'PREFIX': '<silver>[<end> NOTIFIER <silver>]<end>',
                 'BROADCAST TO CONSOLE': True,
                 'RULES LANGUAGE': 'AUTO',
-                'HIDE ADMINS': True,
+                'HIDE ADMINS': False,
                 'PLAYERS LIST ON CHAT': True,
                 'PLAYERS LIST ON CONSOLE': True,
                 'ADVERTS INTERVAL': 6,
@@ -81,7 +81,7 @@ class notifier:
                 '<orange><size=20>•</size><end> Check our server <orange>/rules<end>.',
                 '<orange><size=20>•</size><end> See where you are on the server map at: <lime>http://{server.ip}:{server.port}<end>'
             ),
-            'ADVERTS': (
+            'ADVERTS': [
                 'Want to know the available commands? Type <orange>/help<end>.',
                 'Respect the server <orange>/rules<end>.',
                 'This server is running <orange>Oxide 2<end>.',
@@ -89,7 +89,7 @@ class notifier:
                 'Type <orange>/map<end> for the server map link.',
                 'You are playing on: <lime>{server.hostname}<end>',
                 '<orange>Players Online: <lime>{players}<end> / <lime>{server.maxplayers}<end> Sleepers: <lime>{sleepers}<end><end>'
-            ),
+            ],
             'COLORS': {
                 'PREFIX': '#00EEEE',
                 'JOIN MESSAGE': 'silver',
@@ -180,11 +180,17 @@ class notifier:
                     'Respectați toți jucătorii!',
                     'Evitați spamul în chat!',
                     'Jucați corect și nu abuzați de bug-uri/exploituri!'
+                ),
+                'HU': (
+                    'Csalás szigorúan tilos.',
+                    'Tiszteld minden játékostársad.',
+                    'Kerüld a spammolást a chaten.',
+                    'Játssz tisztességesen és nem élj vissza a hibákkal.'
                 )
             }
         }
 
-        self.con('* Loading default configuration file', True)
+        self.con('* Loading default configuration file')
 
     # -------------------------------------------------------------------------
     def UpdateConfig(self):
@@ -208,7 +214,6 @@ class notifier:
 
             self.Config['COMMANDS']['PLAYERS ONLINE'] = 'online'
             self.Config['MESSAGES']['PLAYERS ONLINE DESC'] = '<orange>/online<end> <grey>-<end> Shows the number of players and <cyan>Admins<end> online, plus a few server stats.'
-            self.Config['MESSAGES']['PLAYERS ONLINE'] = 'There are <lime>{active}<end>/<lime>{maxplayers}<end> players online.'
             self.Config['MESSAGES']['PLAYERS LIST TITLE'] = 'PLAYERS LIST'
             self.Config['MESSAGES']['PLAYERS ONLINE TITLE'] = 'PLAYERS ONLINE'
             self.Config['MESSAGES']['ADMINS ONLINE'] = 'There are <cyan>{admins} Admins<end> online.'
@@ -240,7 +245,7 @@ class notifier:
 
         if self.prefix and f:
 
-            rust.BroadcastChat(self.format('[ %s ] <%s>%s<end>' % (self.prefix, color, text)), None, PROFILE if not profile else profile)
+            rust.BroadcastChat(self.format('%s <%s>%s<end>' % (self.prefix, color, text)), None, PROFILE if not profile else profile)
 
         else:
 
@@ -254,7 +259,7 @@ class notifier:
 
         if self.prefix and f:
 
-            rust.SendChatMessage(player, self.format('[ %s ] <%s>%s<end>' % (self.prefix, color, text)), None, PROFILE if not profile else profile)
+            rust.SendChatMessage(player, self.format('%s <%s>%s<end>' % (self.prefix, color, text)), None, PROFILE if not profile else profile)
 
         else:
 
@@ -275,7 +280,7 @@ class notifier:
             except:
 
                 self.con('An error as occurred when writing a connection log to a file! ( Missing directory )')
-                self.con('Logs have been are now off, please make sure you have the following path on your server files: %s/oxide/logs' % sv.identity)
+                self.con('Logs are now off, please make sure you have the following path on your server files: .../%s/oxide/logs' % sv.identity)
 
     # -------------------------------------------------------------------------
     # - PLUGIN HOOKS
@@ -419,7 +424,8 @@ class notifier:
                 'EN': 'English', 'PT': 'Portuguese', 'ES': 'Spanish',
                 'RO': 'Romanian', 'FR': 'French', 'IT': 'Italian',
                 'DK': 'Danish', 'TR': 'Turk', 'NL': 'Dutch',
-                'RU': 'Russian', 'UA': 'Ukrainian', 'DE': 'German'
+                'RU': 'Russian', 'UA': 'Ukrainian', 'DE': 'German',
+                'HU': 'Hungarian'
             }
 
             if rules:
@@ -748,7 +754,11 @@ class notifier:
 
                 self.lastadvert = index
 
-            self.say(ADVERTS[index].format(players= len(self.activelist()), sleepers=len(self.sleeperlist()), server=sv), COLOR['ADVERTS'])
+            self.say(ADVERTS[index].format(
+                players= len(self.activelist()),
+                sleepers=len(self.sleeperlist()),
+                server=sv),
+            COLOR['ADVERTS'])
 
         else:
 
@@ -942,7 +952,7 @@ class notifier:
             'NR':'Nauru',
             'NU':'Niue',
             'CK':'Cook Islands',
-            'CI':'Cote D"Ivoire',
+            'CI':'Cote D\'Ivoire',
             'CH':'Switzerland',
             'CO':'Colombia',
             'CN':'China',
@@ -1000,7 +1010,7 @@ class notifier:
             'KN':'Saint Kitts and Nevis',
             'LB':'Lebanon',
             'LC':'Saint Lucia',
-            'LA':'Lao People"S Democratic Republic',
+            'LA':'Lao People\'S Democratic Republic',
             'TV':'Tuvalu',
             'TW':'Taiwan, Province of China',
             'TT':'Trinidad and Tobago',
