@@ -1,56 +1,33 @@
-# ==============================================================================
-# DAMAGES TABLE
-# ==============================================================================
-# STAB      = KNIFES / SPEARS / PICKAXES / ARROW / ICEPICK / GRENADES(?)
-# SLASH     = SALVAGE AXE / HATCHETS / BARRICADES / FLOOR SPIKES
-# BLUNT     = TORCH / ROCK / SALVAGE HAMMER / LANDMINE
-# BITE      = ANIMALS / SNAP TRAP
-# BULLET    = GUNS / BOW
-# EXPLOSION = C4 / ROCKET
-# ==============================================================================
-# METABOLISM
-# ==============================================================================
-# FALL   | DROWNED | POISON | COLD | HEAT | RADIATION LEVEL/POISON
-# HUNGER | THIRST | BLEEDING |
-# ==============================================================================
-# ANIMALS
-# ==============================================================================
-# HORSE | WOLF | BEAR | BOAR | STAG | CHICKEN
-# ==============================================================================
-
 import re
 import BasePlayer
 import StringPool
-from  UnityEngine import Random
+from UnityEngine import Random
 from UnityEngine import Vector3
 
-# GLOBAL VARIABLES
 DEV = False
-LATEST_CFG = 4.4
+LATEST_CFG = 4.5
 LINE = '-' * 50
+PROFILE = '76561198206240711'
 
 class deathnotes:
 
-    # ==========================================================================
-    # <>> PLUGIN
-    # ==========================================================================
     def __init__(self):
 
         self.Title = 'Death Notes'
         self.Author = 'SkinN'
         self.Description = 'Broadcasts players/animals deaths to chat'
-        self.Version = V(2, 6, 0)
+        self.Version = V(2, 7, 0)
         self.ResourceId = 819
 
-    # ==========================================================================
-    # <>> CONFIGURATION
-    # ==========================================================================
+    # -------------------------------------------------------------------------
+    # - CONFIGURATION
     def LoadDefaultConfig(self):
+        ''' Hook called if there is no configuration file '''
 
         self.Config = {
             'CONFIG_VERSION': LATEST_CFG,
             'SETTINGS': {
-                'PREFIX': self.Title.upper(),
+                'PREFIX': 'DEATH NOTES <color=white>:</color>',
                 'BROADCAST TO CONSOLE': True,
                 'SHOW SUICIDES': True,
                 'SHOW METABOLISM DEATHS': True,
@@ -61,17 +38,18 @@ class deathnotes:
                 'SHOW PLAYER KILLS': True,
                 'SHOW ANIMAL KILLS': True,
                 'MESSAGE IN RADIUS': False,
-                'MESSAGES RADIUS': 300.0
+                'MESSAGES RADIUS': 300.0,
+                'ENABLE PLUGIN ICON': True
             },
             'COLORS': {
-                'MESSAGE': '#FFFFFF',
-                'PREFIX': '#FF0000',
-                'ANIMAL': '#00FF00',
-                'BODYPART': '#00FF00',
-                'WEAPON': '#00FF00',
-                'VICTIM': '#00FF00',
-                'ATTACKER': '#00FF00',
-                'DISTANCE': '#00FF00'
+                'MESSAGE': '#E0E0E0',
+                'PREFIX': 'grey',
+                'ANIMAL': '#4B75FF',
+                'BODYPART': '#4B75FF',
+                'WEAPON': '#4B75FF',
+                'VICTIM': '#4B75FF',
+                'ATTACKER': '#4B75FF',
+                'DISTANCE': '#4B75FF'
             },
             'MESSAGES': {
                 'RADIATION': ('{victim} died from radiation.', '{victim} did not know that radiation kills.'),
@@ -165,7 +143,9 @@ class deathnotes:
                 'TIMED.EXPLOSIVE.DEPLOYED': 'Timed Explosive Charge',
                 'SMG.WEAPON': 'Custom SMG',
                 'SEMI_PISTOL.WEAPON': 'Semi-Automatic Pistol',
-                'BONE_CLUB.WEAPON': 'Bone Club'
+                'BONE_CLUB.WEAPON': 'Bone Club',
+                'SWORD.WEAPON': 'Salvaged Sword',
+                'CLEAVER.WEAPON': 'Machete'
             },
             'TRAPS': {
                 'FLOOR_SPIKES': 'Wooden Floor Spike',
@@ -187,59 +167,40 @@ class deathnotes:
             }
         }
 
-        self.console('Loading default configuration file', True)
+        self.con('Loading default configuration file')
 
-    # --------------------------------------------------------------------------
+    # -------------------------------------------------------------------------
     def UpdateConfig(self):
+        ''' Function to update the configuration file on plugin Init '''
 
-        # IS OLDER CONFIG TOO OLD?
         if self.Config['CONFIG_VERSION'] <= LATEST_CFG - 0.2 or DEV:
 
-            self.console('Current configuration file is two or more versions older than the latest (Current: v%s / Latest: v%s)' % (self.Config['CONFIG_VERSION'], LATEST_CFG), True)
+            self.con('Current configuration file is two or more versions older than the latest (Current: v%s / Latest: v%s)' % (self.Config['CONFIG_VERSION'], LATEST_CFG))
 
-            # RESET CONFIGURATION
             self.Config.clear()
 
-            # LOAD DEFAULTS CONFIGURATION
             self.LoadDefaultConfig()
 
         else:
 
-            self.console('Applying new changes to the configuration file (Version: %s)' % LATEST_CFG, True)
+            self.con('Applying new changes to the configuration file (Version: %s)' % LATEST_CFG)
 
-            # NEW VERSION VALUE
+            self.Config['SETTINGS']['ENABLE PLUGIN ICON'] = True
+
+            self.Config['WEAPONS']['SWORD.WEAPON'] = 'Salvaged Sword'
+            self.Config['WEAPONS']['CLEAVER.WEAPON'] = 'Machete'
+
             self.Config['CONFIG_VERSION'] = LATEST_CFG
-
-            # NEW CHANGES
-            self.Config['SETTINGS']['SHOW BARRICADE DEATHS'] = True
-
-            self.Config['WEAPONS']['BONE_CLUB.WEAPON'] = 'Bone Club'
-
-            self.Config['MESSAGES']['BARRICADE'] = ('{victim} died stuck on a {attacker}.',)
-            self.Config['MESSAGES']['TRAP'] = ('{victim} stepped on a {attacker}.',)
-
-            self.Config['BARRICADES'] = {
-                'BARRICADE.METAL': 'Metal Barricade',
-                'BARRICADE.WOOD': 'Wooden Barricade',
-                'BARRICADE.WOODWIRE': 'Barbed Wooden Barricade'
-            }
-
-            self.Config['TRAPS']['LANDMINE'] = 'Landmine'
-
-            for i in ('BARRICADE.METAL' ,'BARRICADE.WOOD' , 'BARRICADE.WOODWIRE'):
-
-                del self.Config['TRAPS'][i]
 
         # SAVE CHANGES
         self.SaveConfig()
 
-    # ==========================================================================
-    # <>> PLUGIN SPECIFIC
-    # ==========================================================================
+    # -------------------------------------------------------------------------
+    # - PLUGIN HOOKS
     def Init(self):
+        ''' Hook called when the plugin initializes '''
 
-        if self.Config['CONFIG_VERSION'] < LATEST_CFG or DEV:
-            self.UpdateConfig()
+        if self.Config['CONFIG_VERSION'] < LATEST_CFG or DEV: self.UpdateConfig()
 
         global MSG, PLUGIN, COLOR, PARTS, WEAPONS, TRAPS, ANIMALS, BARRICADES
         MSG, TRAPS, COLOR, PARTS, PLUGIN, WEAPONS, ANIMALS, BARRICADES = (
@@ -249,62 +210,96 @@ class deathnotes:
         self.prefix = '<color=%s>%s</color>' % (COLOR['PREFIX'], PLUGIN['PREFIX']) if PLUGIN['PREFIX'] else None
         self.metabolism = ('DROWNED', 'HEAT', 'COLD', 'THIRST', 'POISON', 'HUNGER', 'RADIATION', 'BLEEDING', 'FALL', 'GENERIC')
 
+        if not PLUGIN['ENABLE PLUGIN ICON']:
+
+            global PROFILE
+            PROFILE = '0'
+
         command.AddChatCommand('deathnotes', self.Plugin, 'plugin_CMD')
 
-    # ==========================================================================
-    # <>> MESSAGE FUNTIONS
-    # ==========================================================================
-    def console(self, text, f=False):
+    # -------------------------------------------------------------------------
+    # - MESSAGE SYSTEM
+    def con(self, text):
+        ''' Function to send a server con message '''
 
-        if self.Config['SETTINGS']['BROADCAST TO CONSOLE'] or f:
+        if self.Config['SETTINGS']['BROADCAST TO CONSOLE']:
+
             print('[%s v%s] :: %s' % (self.Title, str(self.Version), text))
 
-    # --------------------------------------------------------------------------
+    # -------------------------------------------------------------------------
     def debug(self, text):
+        ''' Function for developer debugging messages only '''
 
-        if DEV:
-            self.console(text)
+        if DEV: self.con(text)
 
-    # --------------------------------------------------------------------------
-    def say(self, text, color='white', userid=0):
-
-        if self.prefix:
-            rust.BroadcastChat('%s <color=white>:</color> <color=%s>%s</color>' % (self.prefix, color, text), None, str(userid))
-        else:
-            rust.BroadcastChat('<color=%s>%s</color>' % (color, text), None, str(userid))
-
-    # --------------------------------------------------------------------------
-    def tell(self, player, text, color='white', userid=0, f=True):
+    # -------------------------------------------------------------------------
+    def say(self, text, color='white', f=True, profile=False):
+        ''' Function to send a message to all players '''
 
         if self.prefix and f:
-            rust.SendChatMessage(player, '%s <color=white>:</color> <color=%s>%s</color>' % (self.prefix, color, text), None, str(userid))
+
+            rust.BroadcastChat('%s <color=%s>%s</color>' % (self.prefix, color, text), None, PROFILE if not profile else profile)
+
         else:
-            rust.SendChatMessage(player, '<color=%s>%s</color>' % (color, text), None, str(userid))
+
+            rust.BroadcastChat('<color=%s>%s</color>' % (color, text), None, PROFILE if not profile else profile)
+
+    # -------------------------------------------------------------------------
+    def tell(self, player, text, color='white', f=True, profile=False):
+        ''' Function to send a message to a player '''
+
+        if self.prefix and f:
+
+            rust.SendChatMessage(player, '%s <color=%s>%s</color>' % (self.prefix, color, text), None, PROFILE if not profile else profile)
+
+        else:
+
+            rust.SendChatMessage(player, '<color=%s>%s</color>' % (color, text), None, PROFILE if not profile else profile)
+
+    # -------------------------------------------------------------------------
+    def log(self, filename, text):
+        ''' Logs text into a specific file '''
+
+        if self.logs:
+
+            try:
+
+                filename = 'deathnotes_%s_%s.txt' % (filename, self.log_date())
+
+                sv.Log('oxide/logs/%s' % filename, text)
+
+            except:
+
+                self.con('An error as occurred when writing a connection log to a file! ( Missing directory )')
+                self.con('Logs are now off, please make sure you have the following path on your server files: .../%s/oxide/logs' % sv.identity)
 
     # --------------------------------------------------------------------------
     def say_filter(self, text, raw, vpos, attacker):
+        ''' Message filter in case radius is set to True '''
 
-        color = COLOR['MESSAGE']
+        c = COLOR['MESSAGE']
+
         if PLUGIN['MESSAGE IN RADIUS']:
-            for player in BasePlayer.activePlayerList:
-                if self.distance(player.transform.position, vpos) <= float(PLUGIN['MESSAGES RADIUS']):
-                    self.tell(player, text, color)
-                elif attacker and player == attacker:
-                    self.tell(player, text, color)
-        else:
-            self.say(text, color)
-        if PLUGIN['BROADCAST TO CONSOLE']:
-            self.console(raw)
 
-    # ==========================================================================
-    # <>> MAIN HOOKS
-    # ==========================================================================
+            for ply in BasePlayer.activePlayerList:
+
+                if self.distance(ply.transform.position, vpos) <= float(PLUGIN['MESSAGES RADIUS']):
+
+                    self.tell(ply, text, c)
+
+                elif attacker and ply == attacker: self.tell(ply, text, c)
+
+        else: self.say(text, c)
+
+        if PLUGIN['BROADCAST TO CONSOLE']: self.con(raw)
+
+    # -------------------------------------------------------------------------
+    # - SERVER HOOKS
     def OnEntityDeath(self, vic, hitinfo):
+        ''' Hook called when an entity dies '''
 
-        # IS ENTITY NOT A CORPSE?
         if 'corpse' not in str(vic):
 
-            # DEATH INFOS
             clr = {}
             msg = None
             dmg = str(vic.lastDamage).upper()
@@ -317,76 +312,79 @@ class deathnotes:
                 'distance': '%.2f' % self.distance(vps, att.transform.position) if att else 'None'
             }
 
-            # ATTACKER
             if att:
+
                 if att.ToPlayer():
+
                     raw['attacker'] = att.displayName
+
                 else:
+
                     raw['attacker'] = str(att.LookupShortPrefabName()).upper()
+
             else:
+
                 raw['attacker'] = 'None'
 
             if vic:
 
                 raw['victim'] = str(vic)
 
-                # IS VICTIM A PLAYER OR NPC PLAYER?
                 if vic.ToPlayer():
 
                     raw['victim'] = vic.displayName
 
-                    # IS VICTIM SLEEPING?
                     sleep = vic.IsSleeping()
 
-                    # IS DEATHS SUICIDE OR METABOLISM TYPE?
+                    # Is is Suicide or from Metabolism?
                     if (dmg == 'SUICIDE' and PLUGIN['SHOW SUICIDES']) or (dmg in self.metabolism and PLUGIN['SHOW METABOLISM DEATHS']):
 
                         msg = dmg
 
-                    # IS ATTACKER A PLAYER?
+                    # Is attacker a Player?
                     elif att and att.ToPlayer() and dmg in ('SLASH', 'BLUNT', 'STAB', 'BULLET') and PLUGIN['SHOW PLAYER KILLS']:
 
                         if 'hunting' in str(hitinfo.Weapon):
-                            msg = 'ARROW SLEEP' if sleep else 'ARROW'
-                        else:
-                            msg = '%s SLEEP' % dmg if sleep else dmg
 
-                    # IS ATTACKER AN EXPLOSIVE? (?)
+                            msg = 'ARROW SLEEP' if sleep else 'ARROW'
+
+                        else:  msg = '%s SLEEP' % dmg if sleep else dmg
+
+                    # Is attacker an explosive?
                     elif dmg == 'EXPLOSION' or raw['attacker'].startswith('GRENADE') and PLUGIN['SHOW EXPLOSION DEATHS']:
 
                         raw['weapon'] = WEAPONS[raw['attacker']] if raw['attacker'] in WEAPONS else raw['attacker']
                         msg = 'EXPLOSION'
 
-                    # IS ATTACKER A TRAP?
+                    # Is attacker a trap?
                     elif raw['attacker'] in ('LANDMINE', 'Snap Trap', 'FLOOR_SPIKES') and PLUGIN['SHOW TRAP DEATHS']:
 
                         raw['attacker'] = TRAPS[raw['attacker']] if raw['attacker'] in TRAPS else raw['attacker']
                         msg = 'TRAP'
 
-                    # IS ATTACKER A BARRICADE?
+                    # Is attacker a Barricade?
                     elif dmg in ('SLASH', 'STAB') and PLUGIN['SHOW BARRICADE DEATHS']:
 
                         raw['attacker'] = BARRICADES[raw['attacker']] if raw['attacker'] in BARRICADES else raw['attacker']
                         msg = 'BARRICADE'
 
-                    # IS ATTACKER AN ANIMAL?
+                    # Is attacker an Animal?
                     elif dmg == 'BITE' and PLUGIN['SHOW ANIMAL KILLS']:
 
                         raw['attacker'] = ANIMALS[raw['attacker']] if raw['attacker'] in ANIMALS else raw['attacker']
                         msg = 'BITE SLEEP' if sleep else dmg
 
-                # OTHERWISE IS ANIMAL (NPC?)
-                elif 'animals' in str(vic) and att and att.ToPlayer() and PLUGIN['SHOW ANIMAL DEATHS']:
+                # Otherwise victim is an Animal ( Non-Human NPC )
+                elif 'animals' in str(vic) and att and att.ToPlayer() and (PLUGIN['SHOW ANIMAL DEATHS'] or DEV):
 
                     animal = str(vic.LookupShortPrefabName()).upper()
                     raw['victim'] = ANIMALS[animal] if animal in ANIMALS else animal
                     msg = 'ANIMAL DEATH'
 
-                # DEBUG REPORT
                 #self.debug(LINE)
-                #self.debug(' # REPORT')
+                #self.debug(' # DEATH REPORT')
                 #self.debug(LINE)
-                #self.debug('- MESSAGE TYPE: %s' % msg if msg else 'None')
+                #self.debug('- MESSAGE TYPE: %s' % (msg if msg else 'None'))
                 #self.debug('- DAMAGE : %s' % dmg)
                 #self.debug('- VICTIM : %s ( %s )' % (raw['victim'], vic))
                 #self.debug('- ATTACKER : %s ( %s )' % (raw['attacker'], att))
@@ -397,67 +395,70 @@ class deathnotes:
 
             if msg:
 
-                # MESSAGE STRING
                 msg = MSG[msg]
 
-                if isinstance(msg, tuple):
-                    msg = msg[Random.Range(0, len(msg))]
+                if isinstance(msg, tuple): msg = msg[Random.Range(0, len(msg))]
 
                 if msg:
 
-                    # PLACE NAMES COLORS
                     for n in raw: clr[n] = '<color=%s>%s</color>' % (COLOR[n.upper()], raw[n])
 
-                    # FILTER MESSAGE
-                    try:
-                        self.say_filter(msg.format(**clr), msg.format(**raw), vps, att)
-                    except:
-                        self.console('# NAME FORMAT ERROR')
-                        self.console(LINE)
-                        self.console('Unrecognized name format found in message:')
-                        self.console('\'%s\'' % msg)
-                        self.console(LINE)
-                        self.console('You may only use these name formats in messages:')
-                        self.console('{victim}, {attacker}, {weapon}, {bodypart}, {distance}')
-                        self.console(LINE)
+                    try: self.say_filter(msg.format(**clr), msg.format(**raw), vps, att)
+                    except Exception as e:
+
+                        if type(e).__name__ == 'KeyError':
+
+                            self.con('# NAME FORMAT ERROR')
+                            self.con(LINE)
+                            self.con('Unrecognized name format found in message:')
+                            self.con('\'%s\'' % msg)
+                            self.con(LINE)
+                            self.con('You may only use these name formats in messages:')
+                            self.con('{victim}, {attacker}, {weapon}, {bodypart}, {distance}')
+                            self.con(LINE)
+
+                            return
 
                 #self.debug(LINE)
 
-    # ==========================================================================
-    # <>> SIDE FUNTIONS
-    # ==========================================================================
+    # -------------------------------------------------------------------------
+    # - PLUGIN FUNCTIONS / HOOKS
     def distance(self, p1, p2):
+        ''' Function to get the distance between two points '''
 
         return Vector3.Distance(p1, p2)
 
-    # --------------------------------------------------------------------------
-    def bodypart(self, part):
+    # -------------------------------------------------------------------------
+    def bodypart(self, p):
+        ''' Function to check wether the hitbone is in the config file '''
 
-        if part:
-            part = StringPool.Get(part).upper()
-            for p in PARTS:
-                part = p if p in part else part
-            return PARTS[part] if part in PARTS else part
+        if p:
+
+            p = StringPool.Get(p).upper()
+
+            for i in PARTS: p = i if i in p else p
+
+            return PARTS[p] if p in PARTS else p
+
         return 'None'
 
-    # --------------------------------------------------------------------------
-    def weapon(self, weapon):
+    # -------------------------------------------------------------------------
+    def weapon(self, w):
+        ''' Function to check wether the weapon used is in the config file '''
 
-        if weapon:
-            x = str(weapon.LookupShortPrefabName()).upper()
-            return WEAPONS[x] if x in WEAPONS else x
+        if w:
+
+            w = str(w.LookupShortPrefabName()).upper()
+
+            return WEAPONS[w] if w in WEAPONS else w
+
         return 'None'
 
-    # ==========================================================================
-    # <>> COMMANDS
-    # ==========================================================================
+    # -------------------------------------------------------------------------
+    # - COMMAND FUNCTIONS
     def plugin_CMD(self, player, cmd, args):
+        ''' Plugin command function '''
 
-        self.tell(player, LINE, f=False)
-        self.tell(player, '<color=lime>Death Notes v%s</color> by <color=lime>SkinN</color>' % self.Version, f=False)
-        self.tell(player, self.Description, 'lime', f=False)
-        self.tell(player, '| RESOURSE ID: <color=lime>%s</color> | CONFIG: v<color=lime>%s</color> |' % (self.ResourceId, self.Config['CONFIG_VERSION']), f=False)
-        self.tell(player, LINE, f=False)
-        self.tell(player, '<< Click the icon to contact me.', userid='76561197999302614', f=False)
-
-# ==============================================================================
+        self.tell(player, '<size=18><color=#808080>Death Notes</color></size> <color=grey>v%s</color>' % self.Version, profile='76561198206240711', f=False)
+        self.tell(player, '<color=silver>%s</color>' % self.Description, profile='76561198206240711', f=False)
+        self.tell(player, '<color=silver>Plugin developed by <color=#9810FF>SkinN</color>, powered by <color=orange>Oxide 2</color>.</color>', profile='76561197999302614', f=False)
