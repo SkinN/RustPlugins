@@ -1,11 +1,10 @@
 import re
 import BasePlayer
 import StringPool
-from UnityEngine import Random
-from UnityEngine import Vector3
+from UnityEngine import Vector3, Random
 
 DEV = False
-LATEST_CFG = 4.5
+LATEST_CFG = 4.6
 LINE = '-' * 50
 PROFILE = '76561198206240711'
 
@@ -16,7 +15,7 @@ class deathnotes:
         self.Title = 'Death Notes'
         self.Author = 'SkinN'
         self.Description = 'Broadcasts players/animals deaths to chat'
-        self.Version = V(2, 7, 0)
+        self.Version = V(2, 7, 1)
         self.ResourceId = 819
 
     # -------------------------------------------------------------------------
@@ -60,7 +59,7 @@ class deathnotes:
                 'HEAT': ('{victim} burned to death.',),
                 'FALL': ('{victim} died from a big fall.', '{victim} fell to his death.'),
                 'BLEEDING': ('{victim} bled to death.', '{victim} emptied in blood.'),
-                'EXPLOSION': ('{victim} died from a {weapon} explosion.', 'A {weapon} blew {victim} up.'),
+                'EXPLOSION': ('{victim} died from a {weapon} explosion.', 'A {attacker} blew {victim} up with a {weapon}.'),
                 'POISON': ('{victim} died poisoned.',),
                 'SUICIDE': ('{victim} committed suicide.', '{victim} has put an end to his life.'),
                 'GENERIC': ('{victim} died.', '{victim} has been killed by the gods.'),
@@ -185,10 +184,14 @@ class deathnotes:
 
             self.con('Applying new changes to the configuration file (Version: %s)' % LATEST_CFG)
 
-            self.Config['SETTINGS']['ENABLE PLUGIN ICON'] = True
+            if LATEST_CFG < 4.5:
 
-            self.Config['WEAPONS']['SWORD.WEAPON'] = 'Salvaged Sword'
-            self.Config['WEAPONS']['CLEAVER.WEAPON'] = 'Machete'
+                self.Config['SETTINGS']['ENABLE PLUGIN ICON'] = True
+
+                self.Config['WEAPONS']['SWORD.WEAPON'] = 'Salvaged Sword'
+                self.Config['WEAPONS']['CLEAVER.WEAPON'] = 'Machete'
+
+            self.Config['MESSAGES']['EXPLOSION'] = ('{victim} died from a {weapon} explosion.', 'A {attacker} blew {victim} up with a {weapon}.')
 
             self.Config['CONFIG_VERSION'] = LATEST_CFG
 
@@ -308,7 +311,7 @@ class deathnotes:
 
             raw = {
                 'bodypart': self.bodypart(hitinfo.HitBone) if hitinfo else 'None',
-                'weapon': self.weapon(hitinfo.Weapon) if hitinfo else 'None',
+                'weapon': self.weapon(hitinfo.WeaponPrefab) if hitinfo else 'None',
                 'distance': '%.2f' % self.distance(vps, att.transform.position) if att else 'None'
             }
 
@@ -353,11 +356,10 @@ class deathnotes:
                     # Is attacker an explosive?
                     elif dmg == 'EXPLOSION' or raw['attacker'].startswith('GRENADE') and PLUGIN['SHOW EXPLOSION DEATHS']:
 
-                        raw['weapon'] = WEAPONS[raw['attacker']] if raw['attacker'] in WEAPONS else raw['attacker']
                         msg = 'EXPLOSION'
 
                     # Is attacker a trap?
-                    elif raw['attacker'] in ('LANDMINE', 'Snap Trap', 'FLOOR_SPIKES') and PLUGIN['SHOW TRAP DEATHS']:
+                    elif raw['attacker'] in ('LANDMINE', 'BEARTRAP', 'FLOOR_SPIKES') and PLUGIN['SHOW TRAP DEATHS']:
 
                         raw['attacker'] = TRAPS[raw['attacker']] if raw['attacker'] in TRAPS else raw['attacker']
                         msg = 'TRAP'
@@ -381,17 +383,21 @@ class deathnotes:
                     raw['victim'] = ANIMALS[animal] if animal in ANIMALS else animal
                     msg = 'ANIMAL DEATH'
 
-                #self.debug(LINE)
-                #self.debug(' # DEATH REPORT')
-                #self.debug(LINE)
-                #self.debug('- MESSAGE TYPE: %s' % (msg if msg else 'None'))
-                #self.debug('- DAMAGE : %s' % dmg)
-                #self.debug('- VICTIM : %s ( %s )' % (raw['victim'], vic))
-                #self.debug('- ATTACKER : %s ( %s )' % (raw['attacker'], att))
-                #self.debug('- WEAPON : %s' % raw['weapon'])
-                #self.debug('- BODY PART : %s' % raw['bodypart'])
-                #self.debug('- DISTANCE : %s' % raw['distance'])
-                #self.debug(LINE)
+                '''
+                if vic.ToPlayer() or 'animals' in str(vic):
+
+                    self.debug(LINE)
+                    self.debug(' # DEATH REPORT')
+                    self.debug(LINE)
+                    self.debug('- MESSAGE TYPE: %s' % (msg if msg else 'None'))
+                    self.debug('- DAMAGE : %s' % dmg)
+                    self.debug('- VICTIM : %s ( %s )' % (raw['victim'], vic))
+                    self.debug('- ATTACKER : %s ( %s )' % (raw['attacker'], att))
+                    self.debug('- WEAPON : %s ( %s )' % (raw['weapon'], hitinfo.WeaponPrefab if hitinfo.WeaponPrefab else 'None'))
+                    self.debug('- BODY PART : %s' % raw['bodypart'])
+                    self.debug('- DISTANCE : %s' % raw['distance'])
+                    self.debug(LINE)
+                '''
 
             if msg:
 
@@ -419,7 +425,7 @@ class deathnotes:
 
                             return
 
-                #self.debug(LINE)
+                #if vic.ToPlayer() or 'animals' in str(vic): self.debug(LINE)
 
     # -------------------------------------------------------------------------
     # - PLUGIN FUNCTIONS / HOOKS
