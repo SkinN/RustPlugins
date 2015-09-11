@@ -2,11 +2,12 @@ import re
 import time
 import BasePlayer
 import ConVar.Server as sv
+import TOD_Sky
 import UnityEngine.Random as random
 from System import Action, Int32, String
 
 DEV = True
-LATEST_CFG = 5.1
+LATEST_CFG = 5.3
 LINE = '-' * 50
 PROFILE = '76561198235146288'
 
@@ -15,7 +16,7 @@ class notifier:
     def __init__(self):
 
         self.Title = 'Notifier'
-        self.Version = V(2, 10, 2)
+        self.Version = V(2, 12, 1)
         self.Author = 'SkinN'
         self.Description = 'Broadcasts chat messages as notifications and advertising.'
         self.ResourceId = 797
@@ -51,7 +52,7 @@ class notifier:
             },
             'MESSAGES': {
                 'JOIN MESSAGE': '{username} joined the server, from <orange>{country}<end>.',
-                'LEAVE MESSAGE': '{username} left the server.',
+                'LEAVE MESSAGE': '{username} left the server. (Reason: {reason})',
                 'CHECK CONSOLE': 'Check the console (press F1) for more info.',
                 'PLAYERS ONLINE': 'There are <lime>{active}<end>/<lime>{maxplayers}<end> players online.',
                 'ADMINS ONLINE': 'There are <cyan>{admins} Admins<end> online.',
@@ -73,7 +74,7 @@ class notifier:
                 'RULES DESC': '<orange>/rules<end> <grey>-<end> List of server rules.',
                 'MAP LINK DESC': '<orange>/map<end> <grey>-<end> Server map url.',
                 'ADVERTS DESC': '<orange>/adverts<end> <grey>-<end> Allows <cyan>Admins<end> to change the adverts interval ( i.g: /adverts 5 )',
-                'PLAYERS ONLINE DESC': '<orange>/online<end> <grey>-<end> Shows the number of players and <cyan>Admins<end> online, plus a few server stats.'
+                'PLAYERS ONLINE DESC': '<orange>/online<end> <grey>-<end> Shows the number of players and <cyan>Admins<end> online, plus a few server stats.',
             },
             'WELCOME MESSAGE': (
                 '<size=17>Welcome {username}</size>',
@@ -88,7 +89,9 @@ class notifier:
                 '<red>Cheat is strictly prohibited.<end>',
                 'Type <orange>/map<end> for the server map link.',
                 'You are playing on: <lime>{server.hostname}<end>',
-                '<orange>Players Online: <lime>{players}<end> / <lime>{server.maxplayers}<end> Sleepers: <lime>{sleepers}<end><end>'
+                '<orange>Players Online: <lime>{players}<end> / <lime>{server.maxplayers}<end> Sleepers: <lime>{sleepers}<end><end>',
+                'The game time is <lime>{gamedate} {gametime}<end>',
+                'The server time and date is <lime>{localdate} {localtime}<end>'
             ),
             'COLORS': {
                 'PREFIX': '#00EEEE',
@@ -106,7 +109,7 @@ class notifier:
                 'ADMINS LIST': 'admins',
                 'PLAYERS ONLINE': 'online',
                 'MAP LINK': 'map',
-                'ADVERTS COMMAND': 'adverts'
+                'ADVERTS COMMAND': 'adverts',
             },
             'RULES': {
                 'EN': (
@@ -212,13 +215,7 @@ class notifier:
 
             self.con('* Applying new changes to configuration file')
 
-            self.Config['COMMANDS']['PLAYERS ONLINE'] = 'online'
-            self.Config['MESSAGES']['PLAYERS ONLINE DESC'] = '<orange>/online<end> <grey>-<end> Shows the number of players and <cyan>Admins<end> online, plus a few server stats.'
-            self.Config['MESSAGES']['PLAYERS LIST TITLE'] = 'PLAYERS LIST'
-            self.Config['MESSAGES']['PLAYERS ONLINE TITLE'] = 'PLAYERS ONLINE'
-            self.Config['MESSAGES']['ADMINS ONLINE'] = 'There are <cyan>{admins} Admins<end> online.'
-            self.Config['MESSAGES']['PLAYERS STATS'] = 'Sleepers: <lime>{sleepers}<end> Alltime Players: <lime>{alltime}<end>'
-            self.Config['SETTINGS']['ENABLE PLAYERS ONLINE'] = True
+            self.Config['MESSAGES']['LEAVE MESSAGE'] = '{username} left the server. (Reason: {reason})'
 
             self.Config['CONFIG_VERSION'] = LATEST_CFG
 
@@ -233,7 +230,7 @@ class notifier:
 
             print('[%s v%s] :: %s' % (self.Title, str(self.Version), self.format(text, True)))
 
-    # --------------------------------------------------------------------------
+    # -------------------------------------------------------------------------
     def pcon(self, player, text, color='silver'):
         ''' Function to send a message to a player console '''
 
@@ -302,7 +299,7 @@ class notifier:
         ('MESSAGES', 'COLORS', 'SETTINGS', 'COMMANDS', 'ADVERTS', 'RULES')]
 
         self.prefix = '<%s>%s<end>' % (COLOR['PREFIX'], PLUGIN['PREFIX']) if PLUGIN['PREFIX'] else False
-        self.cache = {}
+        self.players = {}
         self.connected = []
         self.lastadvert = 0
         self.adverts_loop = False
@@ -365,11 +362,11 @@ class notifier:
 
         self.con(LINE)
 
-    # --------------------------------------------------------------------------
+    # -------------------------------------------------------------------------
     def Unload(self):
         ''' Hook called on plugin unload '''
 
-        # Destroy adverts loop
+        # Destroy adverts {loop}
         if self.adverts_loop: self.adverts_loop.Destroy()
 
     # -------------------------------------------------------------------------
@@ -388,28 +385,33 @@ class notifier:
             self.webrequest_filter(player, send)
 
     # -------------------------------------------------------------------------
-    def OnPlayerDisconnected(self, player):
+    def OnPlayerDisconnected(self, player, reason):
         ''' Hook called when a player disconnects from the server '''
 
         uid = self.playerid(player)
-        ply = self.cache[uid]
 
-        # Is Player connected?
-        if uid in self.connected:
+        if uid in self.players:
 
-            self.connected.remove(uid)
+            ply = self.players[uid]
 
-            if PLUGIN['ENABLE LEAVE MESSAGE']:
-                
-                if not (PLUGIN['HIDE ADMINS'] and int(ply['auth']) > 0):
+            # Is Player connected?
+            if uid in self.connected:
 
-                    self.say(MSG['LEAVE MESSAGE'].format(**ply), COLOR['LEAVE MESSAGE'], uid)
+                self.connected.remove(uid)
 
-            # Log disconnect
-            self.log('connections', '{username} disconnected from {country} [UID: {steamid}][IP: {ip}]'.format(**ply))
+                if PLUGIN['ENABLE LEAVE MESSAGE']:
+                    
+                    if not (PLUGIN['HIDE ADMINS'] and int(ply['auth']) > 0):
 
-        # Decache player
-        if uid in self.cache: del self.cache[uid]
+                        reason = reason[8:] if reason.startswith('Kicked:') else reason
+
+                        self.say(MSG['LEAVE MESSAGE'].format(reason=reason, **ply), COLOR['LEAVE MESSAGE'], uid)
+
+                # Log disconnect
+                self.log('connections', '{username} disconnected from {country} [UID: {steamid}][IP: {ip}]'.format(**ply))
+
+            # Decache player
+            del self.players[uid]
 
     # -------------------------------------------------------------------------
     # - COMMAND FUNCTIONS
@@ -458,7 +460,7 @@ class notifier:
         if PLUGIN['PLAYERS LIST ON CHAT']:
 
             # Divide names in chunks before sending to chat
-            names = [self.cache[self.playerid(i)]['username'] for i in active]
+            names = [self.players[self.playerid(i)]['username'] for i in active]
             names = [names[i:i+3] for i in xrange(0, len(names), 3)]
 
             self.tell(player, title, f=False)
@@ -481,7 +483,7 @@ class notifier:
 
             for n, ply in enumerate(active):
 
-                i = self.cache[self.playerid(ply)]
+                i = self.players[self.playerid(ply)]
 
                 self.pcon(player, '<orange>{num}<end> | {steamid}| {countryshort} | <lime>{username}<end>'.format(
                     num='%03d' % (n + 1),
@@ -512,11 +514,11 @@ class notifier:
 
         self.tell(player, MSG['PLAYERS STATS'].format(sleepers=str(len(sleepers)), alltime=str(len(active) + len(sleepers))), f=False)
 
-    # --------------------------------------------------------------------------
+    # -------------------------------------------------------------------------
     def admins_list_CMD(self, player, cmd, args):
         ''' Admins List command function '''
 
-        names = [self.cache[self.playerid(i)]['username'] for i in self.activelist() if i.IsAdmin()]
+        names = [self.players[self.playerid(i)]['username'] for i in self.activelist() if i.IsAdmin()]
         names = [names[i:i+3] for i in xrange(0, len(names), 3)]
 
         if names and not PLUGIN['HIDE ADMINS'] or player.IsAdmin():
@@ -541,13 +543,13 @@ class notifier:
                 
                 self.tell(player, '<lime>{plugin.Title}<end> <grey>v{plugin.Version}<end> by {plugin.Author}'.format(plugin=i), f=False)
 
-    # --------------------------------------------------------------------------
+    # -------------------------------------------------------------------------
     def map_link_CMD(self, player, cmd, args):
         ''' Server Map command function '''
 
         self.tell(player, MSG['MAP LINK'].format(ip=str(sv.ip), port=str(sv.port)))
 
-    # --------------------------------------------------------------------------
+    # -------------------------------------------------------------------------
     def adverts_command_CMD(self, player, cmd, args):
         ''' Adverts Command command function '''
 
@@ -574,13 +576,13 @@ class notifier:
 
         else: self.tell(player, MSG['SYNTAX ERROR'].format(syntax='/adverts <minutes> (i.g /adverts 5)'), 'red')
 
-    # --------------------------------------------------------------------------
+    # -------------------------------------------------------------------------
     def plugin_CMD(self, player, cmd, args):
-        ''' Plugins List command function '''
+        ''' Plugin command function '''
 
         if args and args[0] == 'help':
 
-            self.tell(player, '%s COMMANDS DESCRIPTION:', f=False)
+            self.tell(player, '%sCOMMANDS DESCRIPTION:' % ('%s | ' % self.prefix if self.prefix else ''), f=False)
             self.tell(player, LINE, f=False)
 
             for cmd in CMDS:
@@ -638,7 +640,7 @@ class notifier:
         elif default == 'AUTO':
 
             inv = {v: k for k, v in self.countries.items()}
-            lang = inv[self.cache[self.playerid(player)]['country']]
+            lang = inv[self.players[self.playerid(player)]['country']]
 
             if lang in ('PT','BR'): lang = 'PT'
             elif lang in ('ES','MX','AR'): lang = 'ES'
@@ -676,7 +678,7 @@ class notifier:
 
             uid = rust.UserIDFromConnection(con)
 
-            self.cache[uid] = {
+            self.players[uid] = {
                 'username': self.playername(con),
                 'steamid': uid,
                 'auth': con.authLevel,
@@ -702,19 +704,19 @@ class notifier:
 
             # Cache player country output
             uid = self.playerid(player)
-            self.cache[uid]['country'] = self.countries[country]
+            self.players[uid]['country'] = self.countries[country]
 
             if send:
 
                 # Join Message
                 if PLUGIN['ENABLE JOIN MESSAGE']:
 
-                    if not (PLUGIN['HIDE ADMINS'] and int(self.cache[uid]['auth']) > 0):
+                    if not (PLUGIN['HIDE ADMINS'] and int(self.players[uid]['auth']) > 0):
 
-                        self.say(MSG['JOIN MESSAGE'].format(**self.cache[uid]), COLOR['JOIN MESSAGE'], uid)
+                        self.say(MSG['JOIN MESSAGE'].format(**self.players[uid]), COLOR['JOIN MESSAGE'], uid)
 
                 # Log player connection to file
-                self.log('connections', '{username} connected from {country} [UID: {steamid}][IP: {ip}]'.format(**self.cache[uid]))
+                self.log('connections', '{username} connected from {country} [UID: {steamid}][IP: {ip}]'.format(**self.players[uid]))
 
                 # Welcome Messages
                 if PLUGIN['ENABLE WELCOME MESSAGE']:
@@ -727,7 +729,7 @@ class notifier:
 
                         for line in lines:
 
-                            line = line.format(server=sv, **self.cache[uid])
+                            line = line.format(server=sv, **self.players[uid])
 
                             self.tell(player, line, COLOR['WELCOME MESSAGE'], f=False)
 
@@ -737,8 +739,10 @@ class notifier:
 
                         self.con('No lines found on Welcome Message, turning it off')
 
-        pip = player.net.connection.ipaddress.split(':')[0]
-        webrequests.EnqueueGet('http://ipinfo.io/%s/country' % pip, Action[Int32,String](response_handler), self.Plugin)
+        if player.net and player.net.connection:
+
+            pip = player.net.connection.ipaddress.split(':')[0]
+            webrequests.EnqueueGet('http://ipinfo.io/%s/country' % pip, Action[Int32,String](response_handler), self.Plugin)
 
     # -------------------------------------------------------------------------
     def send_advert(self):
@@ -756,11 +760,21 @@ class notifier:
 
                 self.lastadvert = index
 
-            self.say(ADVERTS[index].format(
-                players= len(self.activelist()),
-                sleepers=len(self.sleeperlist()),
-                server=sv),
-            COLOR['ADVERTS'])
+            try:
+
+                self.say(ADVERTS[index].format(
+                    players= len(self.activelist()),
+                    sleepers=len(self.sleeperlist()),
+                    localtime=time.strftime('%H:%M %p'),
+                    localdate=time.strftime('%m/%d/%Y'),
+                    gametime=' '.join(str(TOD_Sky.Instance.Cycle.DateTime).split()[1:]),
+                    gamedate=str(TOD_Sky.Instance.Cycle.DateTime).split()[0],
+                    server=sv),
+                COLOR['ADVERTS'])
+
+            except:
+
+                self.con('[ERROR] Unknown name format on advert message! (Message: %s)' % ADVERTS[index])
 
         else:
 
