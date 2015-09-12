@@ -6,7 +6,7 @@ import TOD_Sky
 import UnityEngine.Random as random
 from System import Action, Int32, String
 
-DEV = True
+DEV = False
 LATEST_CFG = 5.3
 LINE = '-' * 50
 PROFILE = '76561198235146288'
@@ -47,7 +47,7 @@ class notifier:
                 'ENABLE ADMINS LIST': False,
                 'ENABLE PLUGINS LIST': False,
                 'ENABLE RULES': True,
-                'ENABLE MAP LINK': True,
+                'ENABLE MAP LINK': False,
                 'ENABLE ADVERTS COMMAND': True
             },
             'MESSAGES': {
@@ -240,13 +240,13 @@ class notifier:
     def say(self, text, color='silver', f=True, profile=False):
         ''' Function to send a message to all players '''
 
-        if self.prefix and f:
+        if len(self.prefix) and f:
 
-            rust.BroadcastChat(self.format('%s <%s>%s<end>' % (self.prefix, color, text)), None, PROFILE if not profile else profile)
+            msg = self.format('%s <%s>%s<end>' % (self.prefix, color, text))
 
-        else:
+        else: msg = self.format('<%s>%s<end>' % (color, text))
 
-            rust.BroadcastChat(self.format('<%s>%s<end>' % (color, text)), None, PROFILE if not profile else profile)
+        rust.BroadcastChat(msg, None, PROFILE if not profile else profile)
 
         self.con(self.format(text, True))
 
@@ -254,13 +254,13 @@ class notifier:
     def tell(self, player, text, color='silver', f=True, profile=False):
         ''' Function to send a message to a player '''
 
-        if self.prefix and f:
+        if len(self.prefix) and f:
 
-            rust.SendChatMessage(player, self.format('%s <%s>%s<end>' % (self.prefix, color, text)), None, PROFILE if not profile else profile)
+            msg = self.format('%s <%s>%s<end>' % (self.prefix, color, text))
 
-        else:
+        else: msg = self.format('<%s>%s<end>' % (color, text))
 
-            rust.SendChatMessage(player, self.format('<%s>%s<end>' % (color, text)), None, PROFILE if not profile else profile)
+        rust.SendChatMessage(player, msg, None, PROFILE if not profile else profile)
 
     # -------------------------------------------------------------------------
     def log(self, filename, text):
@@ -271,7 +271,6 @@ class notifier:
             try:
 
                 filename = 'notifier_%s_%s.txt' % (filename, self.log_date())
-
                 sv.Log('oxide/logs/%s' % filename, text)
 
             except:
@@ -298,7 +297,7 @@ class notifier:
         MSG, COLOR, PLUGIN, CMDS, ADVERTS, RULES = [self.Config[x] for x in \
         ('MESSAGES', 'COLORS', 'SETTINGS', 'COMMANDS', 'ADVERTS', 'RULES')]
 
-        self.prefix = '<%s>%s<end>' % (COLOR['PREFIX'], PLUGIN['PREFIX']) if PLUGIN['PREFIX'] else False
+        self.prefix = '<%s>%s<end>' % (COLOR['PREFIX'], PLUGIN['PREFIX']) if PLUGIN['PREFIX'] else ''
         self.players = {}
         self.connected = []
         self.lastadvert = 0
@@ -434,7 +433,7 @@ class notifier:
 
             if rules:
 
-                self.tell(player, '%s <%s>%s<end>:' % (self.prefix if self.prefix else '', COLOR['BOARDS TITLE'], MSG['RULES TITLE']), f=False)
+                self.tell(player, '%s <%s>%s<end>:' % (self.prefix, COLOR['BOARDS TITLE'], MSG['RULES TITLE']), f=False)
                 self.tell(player, LINE, f=False)
 
                 for n, line in enumerate(rules):
@@ -454,13 +453,20 @@ class notifier:
 
         active = self.activelist()
 
-        title = '%s <%s>%s<end>:' % (self.prefix if self.prefix else '', COLOR['BOARDS TITLE'], MSG['PLAYERS LIST TITLE'])
+        title = '%s <%s>%s<end>:' % (self.prefix, COLOR['BOARDS TITLE'], MSG['PLAYERS LIST TITLE'])
 
         # Show list on chat?
         if PLUGIN['PLAYERS LIST ON CHAT']:
 
             # Divide names in chunks before sending to chat
-            names = [self.players[self.playerid(i)]['username'] for i in active]
+            names = []
+
+            for i in active:
+
+                uid = self.playerid(i)
+
+                if len(uid) == 17: names.append(self.players[uid]['username'])
+
             names = [names[i:i+3] for i in xrange(0, len(names), 3)]
 
             self.tell(player, title, f=False)
@@ -475,9 +481,7 @@ class notifier:
             self.tell(player, LINE, f=False)
             self.tell(player, '(%s)' % MSG['CHECK CONSOLE'], 'orange', f=False)
 
-            self.pcon(player, LINE)
-            self.pcon(player, title)
-            self.pcon(player, LINE)
+            for i in (LINE, title, LINE): self.pcon(player, i)
 
             inv = {v: k for k, v in self.countries.items()}
 
@@ -485,7 +489,7 @@ class notifier:
 
                 i = self.players[self.playerid(ply)]
 
-                self.pcon(player, '<orange>{num}<end> | {steamid}| {countryshort} | <lime>{username}<end>'.format(
+                self.pcon(player, '<orange>{num}<end> | {steamid} | {countryshort} | <lime>{username}<end>'.format(
                     num='%03d' % (n + 1),
                     countryshort=inv[i['country']],
                     **i
@@ -502,7 +506,7 @@ class notifier:
         active = self.activelist()
         sleepers = self.sleeperlist()
 
-        self.tell(player, '%s <%s>%s<end>:' % (self.prefix if self.prefix else '', COLOR['BOARDS TITLE'], MSG['PLAYERS ONLINE TITLE']), f=False)
+        self.tell(player, '%s <%s>%s<end>:' % (self.prefix, COLOR['BOARDS TITLE'], MSG['PLAYERS ONLINE TITLE']), f=False)
         self.tell(player, LINE, f=False)
         self.tell(player, MSG['PLAYERS ONLINE'].format(active=str(len(active)), maxplayers=str(sv.maxplayers)), f=False)
 
@@ -523,7 +527,7 @@ class notifier:
 
         if names and not PLUGIN['HIDE ADMINS'] or player.IsAdmin():
 
-            self.tell(player, '%s <%s>%s<end>:' % (self.prefix if self.prefix else '', COLOR['BOARDS TITLE'], MSG['ADMINS LIST TITLE']), f=False)
+            self.tell(player, '%s <%s>%s<end>:' % (self.prefix, COLOR['BOARDS TITLE'], MSG['ADMINS LIST TITLE']), f=False)
             self.tell(player, LINE, f=False)
 
             for i in names: self.tell(player, ', '.join(i), 'white', f=False)
@@ -534,14 +538,14 @@ class notifier:
     def plugins_list_CMD(self, player, cmd, args):
         ''' Plugins List command function '''
 
-        self.tell(player, '%s <%s>%s<end>:' % (self.prefix if self.prefix else '', COLOR['BOARDS TITLE'], MSG['PLUGINS LIST TITLE']), f=False)
+        self.tell(player, '%s <%s>%s<end>:' % (self.prefix, COLOR['BOARDS TITLE'], MSG['PLUGINS LIST TITLE']), f=False)
         self.tell(player, LINE, f=False)
 
         for i in plugins.GetAll():
 
             if i.Author != 'Oxide Team':
                 
-                self.tell(player, '<lime>{plugin.Title}<end> <grey>v{plugin.Version}<end> by {plugin.Author}'.format(plugin=i), f=False)
+                self.tell(player, '<lime>{p.Title}<end> <grey>v{p.Version}<end> by {p.Author}'.format(p=i), f=False)
 
     # -------------------------------------------------------------------------
     def map_link_CMD(self, player, cmd, args):
@@ -582,7 +586,7 @@ class notifier:
 
         if args and args[0] == 'help':
 
-            self.tell(player, '%sCOMMANDS DESCRIPTION:' % ('%s | ' % self.prefix if self.prefix else ''), f=False)
+            self.tell(player, '%sCOMMANDS DESCRIPTION:' % ('%s | ' % self.prefix), f=False)
             self.tell(player, LINE, f=False)
 
             for cmd in CMDS:
@@ -615,9 +619,7 @@ class notifier:
 
                 return '<#ADFF64>%s<end>' % con.username
 
-            else:
-
-                return '<#6496E1>%s<end>' % con.username
+            else: return '<#6496E1>%s<end>' % con.username
 
         else: return con.username
 
@@ -807,7 +809,8 @@ class notifier:
             text = text.replace('<%s>' % end, '</color>')
             for f in (name, hexcode):
                 for c in re.findall(f, text):
-                    if c.startswith('#') or c in colors: text = text.replace('<%s>' % c, '<color=%s>' % c)
+                    if c.startswith('#') or c in colors:
+                        text = text.replace('<%s>' % c, '<color=%s>' % c)
         return text
 
     # -------------------------------------------------------------------------
